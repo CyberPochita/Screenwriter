@@ -7,7 +7,6 @@
   import { getContext } from "svelte";
 
   import "../../../lib/components/EditPanel.svelte";
-  import EditPanel from "../../../lib/components/EditPanel.svelte";
 
   interface NavState {
     isVisible: boolean;
@@ -16,7 +15,6 @@
   let navState = getContext("nav") as NavState;
   let scenarios = $state<string[]>([]);
   let newName = $state("");
-  //let path = $state('');
   let chooseFile = $state<string | null>(null);
 
   let editorSettings = getContext<any>("editor-settings");
@@ -27,10 +25,41 @@
     const { from, to } = state.selection.main;
     const selectedText = state.sliceDoc(from, to);
 
-    dispatch({
-      changes: { from, to, insert: `${syntax}${selectedText}${syntax}` },
-      selection: { anchor: from + syntax.length, head: to + syntax.length },
-    });
+    let insertion: string;
+    let newCursorFrom: number;
+    let newCursorTo: number;
+
+    const isWrapped = 
+      state.sliceDoc(from - syntax.length, from) === syntax &&
+      state.sliceDoc(to, to + syntax.length) === syntax;
+    
+    if (isWrapped) {
+      dispatch({
+        changes: {
+          from: from - syntax.length,
+          to: to + syntax.length,
+          insert: selectedText
+        },
+        selection: {
+          anchor: from - syntax.length,
+          head: to - syntax.length
+        }
+      });
+    } else {
+      if (syntax.endsWith(" ")) {
+        insertion = `${syntax}${selectedText}`;
+        newCursorFrom = from + syntax.length;
+        newCursorTo = to + syntax.length;
+      } else {
+        insertion = `${syntax}${selectedText}${syntax}`;
+        newCursorFrom = from + syntax.length;
+        newCursorTo = to + syntax.length;
+      }
+      dispatch({
+        changes: { from, to, insert: insertion },
+        selection: { anchor: from + syntax.length, head: to + syntax.length },
+      });
+    }
     view.focus();
   };
 
@@ -40,38 +69,6 @@
 
   let content = $state("");
   let view = $state<EditorView | null>(null);
-
-  // const handleEditorInit = (v: EditorView) => {
-  //   view = v;
-  // };
-
-  function applyMarkdown(syntax: string) {
-    if (!view) return;
-
-    const { state, dispatch } = view;
-    const { from, to } = state.selection.main;
-    const selectedText = state.sliceDoc(from, to);
-
-    let insertion: string;
-    let newCursorPos: number;
-
-    if (syntax.endsWith(" ")) {
-      insertion = `${syntax}${selectedText}`;
-      newCursorPos = to + syntax.length;
-    } else {
-      insertion = `${syntax}${selectedText}${syntax}`;
-      newCursorPos = to + syntax.length;
-    }
-
-    dispatch({
-      changes: { from, to, insert: `${syntax}${selectedText}${syntax}` },
-      selection: { anchor: from + syntax.length, head: to + syntax.length },
-    });
-
-    view.focus();
-  }
-
-  // let textSettings = getContext<any>('textSettings');
 
   async function loadScenarios() {
     try {
@@ -97,7 +94,6 @@
       content = await invoke("read_file", { nameFile: name_file });
       chooseFile = name_file;
       navState.isVisible = !navState.isVisible;
-      // textSettings.show = true;
     } catch (e) {
       console.error("Failed to load content:", e);
       console.error("Name file:", name_file);
@@ -112,7 +108,6 @@
     chooseFile = null;
     content = "";
     navState.isVisible = !navState.isVisible;
-    // EditPanel.show = false;
     loadScenarios();
   }
 
@@ -125,7 +120,6 @@
   });
 </script>
 
-<!-- <EditPanel onApplyStyle={applyMarkdown} /> -->
 
 <div class="h-full p-8 font-serif">
   {#if chooseFile}
@@ -163,17 +157,35 @@
             onchange={(v) => (content = v)}
             onready={(v) => (view = v)}
             lang={markdown()}
+            rectangularSelection={false}
             styles={{
-              "&": { height: "100%", backgroundColor: "transparent" },
+              "&": {
+                height: "100%",
+                backgroundColor: "transparent",
+              },
+              /* 1. Убираем обводку при фокусе на самом редакторе */
+              "&.cm-focused": {
+                outline: "none",
+              },
               ".cm-scroller": {
                 fontFamily: "var(--font-mono)",
                 lineHeight: "1.8",
               },
-              ".cm-content": { padding: "40px" },
+              ".cm-content": {
+                padding: "10px",
+              },
+              /* 2. Настройка панели номеров строк */
               ".cm-gutters": {
                 backgroundColor: "transparent",
-                border: "none",
-                opacity: "0.2",
+                /* Твоя вертикальная палочка-разделитель */
+                borderRight: "1px solid rgba(25, 25, 25, 0.2)",
+                color: "rgba(25, 25, 25, 0.5)",
+                borderLeft: "none",
+              },
+              /* 3. Убираем лишние обводки вокруг активной строки */
+              ".cm-activeLineGutter": {
+                backgroundColor: "transparent",
+                color: "var(--color-writer-focus)",
               },
             }}
             lineWrapping={true}
