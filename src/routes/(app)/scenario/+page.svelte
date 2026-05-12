@@ -7,17 +7,20 @@
   import { getContext } from "svelte";
 
   import "../../../lib/components/EditPanel.svelte";
+  import "../../../lib/components/Editor.svelte";
+  import Editor from "../../../lib/components/Editor.svelte";
 
   interface NavState {
     isVisible: boolean;
   }
 
   let navState = getContext("nav") as NavState;
+  let editorSettings = getContext<any>("editor-settings");
   let scenarios = $state<string[]>([]);
   let newName = $state("");
   let chooseFile = $state<string | null>(null);
-
-  let editorSettings = getContext<any>("editor-settings");
+  let content = $state("");
+  let view = $state<EditorView | null>(null);
 
   editorSettings.applyStyle = (syntax: string) => {
     if (!view) return;
@@ -29,21 +32,21 @@
     let newCursorFrom: number;
     let newCursorTo: number;
 
-    const isWrapped = 
+    const isWrapped =
       state.sliceDoc(from - syntax.length, from) === syntax &&
       state.sliceDoc(to, to + syntax.length) === syntax;
-    
+
     if (isWrapped) {
       dispatch({
         changes: {
           from: from - syntax.length,
           to: to + syntax.length,
-          insert: selectedText
+          insert: selectedText,
         },
         selection: {
           anchor: from - syntax.length,
-          head: to - syntax.length
-        }
+          head: to - syntax.length,
+        },
       });
     } else {
       if (syntax.endsWith(" ")) {
@@ -66,9 +69,6 @@
   $effect(() => {
     editorSettings.showSettings = !!chooseFile;
   });
-
-  let content = $state("");
-  let view = $state<EditorView | null>(null);
 
   async function loadScenarios() {
     try {
@@ -120,7 +120,6 @@
   });
 </script>
 
-
 <div class="h-full p-8 font-serif">
   {#if chooseFile}
     <!-- ЭКРАН РЕДАКТОРА -->
@@ -150,48 +149,11 @@
       </header>
 
       <!-- Само содержимое файла -->
-      <div class="h-full w-full bg-transparent overflow-hidden flex flex-col">
-        <div class="editor-wrapper flex-1 overflow-auto font-mono text-lg">
-          <CodeMirror
-            value={content}
-            onchange={(v) => (content = v)}
-            onready={(v) => (view = v)}
-            lang={markdown()}
-            rectangularSelection={false}
-            styles={{
-              "&": {
-                height: "100%",
-                backgroundColor: "transparent",
-              },
-              /* 1. Убираем обводку при фокусе на самом редакторе */
-              "&.cm-focused": {
-                outline: "none",
-              },
-              ".cm-scroller": {
-                fontFamily: "var(--font-mono)",
-                lineHeight: "1.8",
-              },
-              ".cm-content": {
-                padding: "10px",
-              },
-              /* 2. Настройка панели номеров строк */
-              ".cm-gutters": {
-                backgroundColor: "transparent",
-                /* Твоя вертикальная палочка-разделитель */
-                borderRight: "1px solid rgba(25, 25, 25, 0.2)",
-                color: "rgba(25, 25, 25, 0.5)",
-                borderLeft: "none",
-              },
-              /* 3. Убираем лишние обводки вокруг активной строки */
-              ".cm-activeLineGutter": {
-                backgroundColor: "transparent",
-                color: "var(--color-writer-focus)",
-              },
-            }}
-            lineWrapping={true}
-          />
-        </div>
+      <!-- <div class="h-full w-full bg-transparent overflow-hidden flex flex-col"> -->
+      <div class="editor-wrapper flex-1 overflow-auto font-mono text-lg">
+        <Editor bind:value={content} bind:view={view} />
       </div>
+      <!-- </div> -->
     </div>
   {:else}
     <!-- ЭКРАН СПИСКА (АРХИВ) -->
@@ -236,10 +198,3 @@
     </div>
   {/if}
 </div>
-
-<style>
-  /* Скрываем стандартные рамки CodeMirror, чтобы вписать в АРМ */
-  :global(.cm-editor) {
-    outline: none !important;
-  }
-</style>
