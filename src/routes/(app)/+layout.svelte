@@ -1,7 +1,6 @@
 <script lang="ts">
   import "./layout.css";
   import { setContext } from "svelte";
-  // import TextSettings from "../../lib/components/EditPanel.svelte";
   import EditPanel from "../../lib/components/EditPanel.svelte";
 
   let textEditorState = $state({
@@ -20,15 +19,6 @@
 </script>
 
 <div class="flex h-screen w-full overflow-hidden p-2">
-  <!-- {#if navState.isVisible}
-    <button
-      class="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/75 backdrop-blur-md border border-white/10 rounded-full shadow-lg hover:bg-white transition-all"
-    >
-      <span class="text-xs font-bold">>></span>
-    </button>
-    {/if} -->
-
-  <!-- Островок навигации -->
   <nav
     class="flex flex-col items-center h-full bg-white/75 backdrop-blur-xl border border-white/10 rounded-2xl py-8 shadow-2xl transition-all duration-300 overflow-hidden
     {navState.isVisible
