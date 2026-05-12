@@ -1,8 +1,7 @@
 <script lang="ts">
   import CodeMirror from "svelte-codemirror-editor";
   import { markdown } from "@codemirror/lang-markdown";
-  import type { EditorView } from "@codemirror/view";
-
+  
   // Используем $bindable для связи с родителем
   let { 
     value = $bindable(''), 

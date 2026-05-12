@@ -1,13 +1,10 @@
 <script lang="ts">
-  import CodeMirror from "svelte-codemirror-editor";
-  import { markdown } from "@codemirror/lang-markdown";
   import type { EditorView } from "@codemirror/view";
   import { invoke } from "@tauri-apps/api/core";
   import { onMount, onDestroy } from "svelte";
   import { getContext } from "svelte";
 
   import "../../../lib/components/EditPanel.svelte";
-  import "../../../lib/components/Editor.svelte";
   import Editor from "../../../lib/components/Editor.svelte";
 
   interface NavState {
