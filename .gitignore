@@ -1,23 +1,37 @@
+# SvelteKit & Node
 node_modules
-
-# Output
-.output
-.vercel
-.netlify
-.wrangler
 /.svelte-kit
 /build
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Env
+/package
 .env
 .env.*
 !.env.example
-!.env.test
+.vercel
+.netlify
+
+# Tauri & Rust
+# Исключаем папку сборки Rust (она весит гигабайты)
+src-tauri/target
+# Логи и временные файлы Tauri
+src-tauri/gen
+src-tauri/dump.rdb
+    
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Твои данные (опционально)
+# Если ты не хочешь коммитить свои написанные сценарии в Git
+scenarios/*.md
