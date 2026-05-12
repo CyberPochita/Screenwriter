@@ -1,0 +1,70 @@
+/* Островок навигации */
+.nav-island {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--spacing-16);
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-2xl);
+  padding-top: var(--spacing-8);
+  padding-bottom: var(--spacing-8);
+  box-shadow: var(--shadow-2xl);
+  /* Важно: убираем лишние горизонтальные отступы, чтобы ссылка прилипала к краям */
+  overflow: hidden; 
+}
+
+/* Прямоугольная ссылка на всю ширину */
+.nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Растягиваем на всю ширину островка */
+  width: 100%; 
+  height: var(--spacing-12);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: color-mix(in srgb, var(--color-paper) 40%, transparent);
+  /* Обводка: по умолчанию прозрачная */
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+  color: var(--color-writer-focus);
+  /* Проявляем границы при наведении */
+  border-color: rgba(0, 0, 0, 1);
+}
+
+/* Активное состояние: четкий прямоугольник */
+.nav-link.active {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-writer-focus);
+  /* Белая прямоугольная обводка сверху и снизу */
+  border-top: 1px solid var(--color-writer-focus);
+  border-bottom: 1px solid var(--color-writer-focus);
+}
+
+/* Контейнер основного контента */
+.main-content-area {
+  flex: 1 1 0%;
+  position: relative;
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-2xl);
+  overflow: auto;
+  box-shadow: var(--shadow-2xl);
+}
+
+/* Иконка-текст */
+.nav-icon {
+  letter-spacing: var(--tracking-tighter);
+  font-weight: var(--font-bold);
+}
