@@ -1,1 +1,2 @@
-pub mod Character;
+pub mod character;
+
