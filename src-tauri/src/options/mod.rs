@@ -1,0 +1,10 @@
+use std::path::PathBuf;
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Options {
+    pub main_dir: PathBuf,
+    pub scenarios_dir: PathBuf,
+    pub characters_dir: PathBuf,
+    pub current_dir: PathBuf
+}
