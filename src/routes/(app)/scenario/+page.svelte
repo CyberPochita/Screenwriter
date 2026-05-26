@@ -13,11 +13,12 @@
 
   let navState = getContext("nav") as NavState;
   let editorSettings = getContext<any>("editor-settings");
-  let scenarios = $state<string[]>([]);
+  let files = $state<string[]>([]);
   let newName = $state("");
   let chooseFile = $state<string | null>(null);
   let content = $state("");
   let view = $state<EditorView | null>(null);
+  let currentProject = $state("scenarios");
 
   editorSettings.applyStyle = (syntax: string) => {
     if (!view) return;
@@ -67,9 +68,30 @@
     editorSettings.showSettings = !!chooseFile;
   });
 
-  async function loadScenarios() {
+  async function enterProject() {
+    if (!newName) return;
     try {
-      scenarios = await invoke("get_scenarios");
+      await invoke("enter_project", { projectName: newName });
+      newName = "";
+      await get_files();
+    } catch (e) {
+      console.error("Failed to enter project:", e);
+    }
+  }
+
+  async function exitProject() {
+    try {
+      let result = await invoke<string | null>("exit_project");
+      currentProject = result || "scenarios";
+      await get_files();
+    } catch (e) {
+      console.error("Failed to exit project:", e);
+    }
+  }
+
+  async function get_files() {
+    try {
+      files = await invoke("get_files");
     } catch (e) {
       console.error("Failed to load scenarios:", e);
     }
@@ -80,20 +102,28 @@
     try {
       await invoke("create_file", { name: newName });
       newName = "";
-      await loadScenarios();
+      await get_files();
     } catch (e) {
-      console.error("Failed to create scenario:", e);
+      console.error("Failed to create scenarios:", e);
     }
   }
 
   async function loadContent(name_file: string) {
     try {
-      content = await invoke("read_file", { nameFile: name_file });
-      chooseFile = name_file;
-      navState.isVisible = !navState.isVisible;
-    } catch (e) {
-      console.error("Failed to load content:", e);
-      console.error("Name file:", name_file);
+      const result = await invoke<string | null>("entry_file", {
+        nameFile: name_file,
+      });
+      console.log("Результат от функции Rust: ", result);
+      if (result === null) {
+        currentProject = name_file;
+        get_files();
+      } else {
+        content = result;
+        chooseFile = name_file;
+        navState.isVisible = !navState.isVisible;
+      }
+    } catch (error) {
+      console.error("Ошибка в загрузке контента: ", error);
     }
   }
 
@@ -101,23 +131,47 @@
     await invoke("write_to_file", { msg: content, file: chooseFile });
   }
 
+  async function deleteFile(name_file: string) {
+    try {
+      await invoke("delete_file", { name: name_file });
+      if (chooseFile === name_file) {
+        closeFile();
+      } else {
+        await get_files();
+      }
+    } catch (e) {
+      console.error("Failed to delete file:", e);
+    }
+  }
+
   function closeFile() {
     chooseFile = null;
     content = "";
     navState.isVisible = !navState.isVisible;
-    loadScenarios();
+    get_files();
+  }
+
+  function returnDir() {
+    invoke("return_dir")
+      .then(() => {
+        currentProject = "scenarios";
+      })
+      .catch((e) => {
+        console.error("Failed to return to directory:", e);
+      });
   }
 
   onMount(() => {
-    loadScenarios();
+    get_files();
   });
 
   onDestroy(() => {
     editorSettings.showSettings = false;
+    returnDir();
   });
 </script>
 
-<div class="h-full p-8 font-serif">
+<div class="h-full p-5 font-serif">
   {#if chooseFile}
     <!-- ЭКРАН РЕДАКТОРА -->
     <div class="flex flex-col h-full animate-in fade-in duration-500">
@@ -146,51 +200,87 @@
       </header>
 
       <!-- Само содержимое файла -->
-      <!-- <div class="h-full w-full bg-transparent overflow-hidden flex flex-col"> -->
       <div class="editor-wrapper flex-1 overflow-auto font-mono text-lg">
-        <Editor bind:value={content} bind:view={view} />
+        <Editor bind:value={content} bind:view />
       </div>
-      <!-- </div> -->
     </div>
   {:else}
     <!-- ЭКРАН СПИСКА (АРХИВ) -->
     <header class="mb-10 flex justify-between items-end">
       <div>
         <h1 class="text-3xl italic">Архив рукописей</h1>
-        <p
-          class="font-mono text-[10px] opacity-40 mt-2 uppercase tracking-widest"
-        >
-          Scriptwriter_OS // Storage
+        {#if currentProject !== "scenarios"}
+          <button
+            onclick={exitProject}
+            class="font-mono text-xs opacity-40 hover:opacity-100 transition-opacity"
+          >
+            ← НАЗАД
+          </button>
+        {/if}
+      </div>
+
+      <div class="">
+        <p class="font-mono text-xl">
+          {#if currentProject}
+            Папка: <span class="italic">{currentProject}</span>
+          {:else}
+            Выберите проект или создайте новый
+          {/if}
         </p>
       </div>
 
       <div class="flex gap-2">
         <input
           bind:value={newName}
-          placeholder="Имя файла..."
+          placeholder="Имя файла/проекта..."
           class="border-b border-black/10 bg-transparent px-2 text-xs outline-none"
         />
+
+        <button
+          onclick={enterProject}
+          class="border border-black/10 px-4 py-1 text-xs font-mono uppercase hover:bg-black hover:text-white transition-all"
+        >
+          + Создать проект
+        </button>
         <button
           onclick={createScenario}
           class="border border-black/10 px-4 py-1 text-xs font-mono uppercase hover:bg-black hover:text-white transition-all"
         >
-          + Создать
+          + Создать сценарий
         </button>
       </div>
     </header>
 
-    <div class="grid gap-3">
-      {#each scenarios as file}
-        <button
-          onclick={() => loadContent(file)}
-          class="flex items-center justify-between p-5 bg-white/40 border border-white/10 rounded-2xl hover:bg-white hover:shadow-xl hover:-translate-y-0.5 transition-all group text-left"
+    <div class="flex flex-col gap-3">
+      {#each files as file}
+        <!-- Контейнер для пары кнопок -->
+        <div
+          class="group flex items-stretch gap-0 hover:gap-3 w-full transition-all duration-300"
         >
-          <span class="text-xl text-writer-dark/80">{file}</span>
-          <span
-            class="font-mono text-[10px] opacity-0 group-hover:opacity-40 tracking-tighter"
-            >ЧИТАТЬ →</span
+          <!-- Основная кнопка -->
+          <button
+            onclick={() => loadContent(file)}
+            class="flex-1 flex items-center justify-between p-5 bg-white/40 border border-white/10 rounded-2xl hover:bg-white hover:shadow-xl hover:-translate-y-0.5 transition-all text-left"
           >
-        </button>
+            <span class="text-xl text-writer-dark/80">{file}</span>
+            <span
+              class="font-mono text-[10px] opacity-0 group-hover:opacity-40 tracking-tighter transition-opacity duration-300"
+            >
+              ЧИТАТЬ →
+            </span>
+          </button>
+
+          <!-- Кнопка удаления с плавной анимацией появления -->
+          <button
+            onclick={() => deleteFile(file)}
+            class="flex items-center justify-center bg-white/40 border border-white/10 rounded-2xl hover:bg-red-500 hover:text-white text-left
+               w-0 opacity-0 pointer-events-none overflow-hidden hover:shadow-xl hover:-translate-y-0.5
+               group-hover:w-14 group-hover:opacity-100 group-hover:pointer-events-auto
+               transition-all duration-300 ease-out"
+          >
+            <span class="font-mono text-[12px] tracking-tighter"> X </span>
+          </button>
+        </div>
       {/each}
     </div>
   {/if}
