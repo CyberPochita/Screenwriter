@@ -31,7 +31,3 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
-
-# Твои данные (опционально)
-# Если ты не хочешь коммитить свои написанные сценарии в Git
-scenarios/*.md
