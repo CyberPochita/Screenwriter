@@ -3,6 +3,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { onMount, onDestroy } from "svelte";
   import { getContext } from "svelte";
+  import { createDocumentStore } from "$lib/components/documentStore.svelte";
 
   import "../../../lib/components/EditPanel.svelte";
   import Editor from "../../../lib/components/Editor.svelte";
@@ -19,6 +20,7 @@
   let content = $state("");
   let view = $state<EditorView | null>(null);
   let currentProject = $state("scenarios");
+  const doc = createDocumentStore();
 
   editorSettings.applyStyle = (syntax: string) => {
     if (!view) return;
@@ -200,8 +202,38 @@
       </header>
 
       <!-- Само содержимое файла -->
-      <div class="editor-wrapper flex-1 overflow-auto font-mono text-lg">
-        <Editor bind:value={content} bind:view />
+      <div
+        class="flex justify-center items-center w-full h-screen overflow-auto font-mono text-lg"
+      >
+        <div class="relative">
+          <Editor bind:value={doc.currentPage.text} bind:view={doc.view} />
+          <div
+            class="absolute top-4 left-[calc(100%+16px)] flex flex-col gap-186 w-30"
+          >
+            <p class="text-sm opacity-70 select-none">Страницы</p>
+
+            <div class="flex gap-1 h-11">
+              <button
+                onclick={doc.prev}
+                disabled={doc.currentIndex === 0}
+                class="flex-1 flex items-center justify-center p-3 bg-white/40 border border-white/10 rounded-2xl
+                hover:bg-white hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-30 disabled:pointer-events-none
+                transition-all cursor-pointer"
+              >
+                ❮
+              </button>
+              <button
+                onclick={doc.next}
+                disabled={doc.currentIndex === doc.pages.length - 1}
+                class="flex-1 flex items-center justify-center p-3 bg-white/40 border border-white/10 rounded-2xl
+                hover:bg-white hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-30 disabled:pointer-events-none
+                transition-all cursor-pointer"
+              >
+                ❯
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   {:else}
