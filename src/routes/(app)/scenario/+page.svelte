@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { EditorView } from "@codemirror/view";
   import { invoke } from "@tauri-apps/api/core";
   import { onMount, onDestroy } from "svelte";
   import { getContext } from "svelte";
@@ -17,62 +16,8 @@
   let files = $state<string[]>([]);
   let newName = $state("");
   let chooseFile = $state<string | null>(null);
-  let content = $state("");
-  let view = $state<EditorView | null>(null);
   let currentProject = $state("scenarios");
   const doc = createDocumentStore();
-
-  function handleOverflow(char: string) {
-    doc.addPage(char);
-  }
-
-  editorSettings.applyStyle = (syntax: string) => {
-    if (!view) return;
-    const { state, dispatch } = view;
-    const { from, to } = state.selection.main;
-    const selectedText = state.sliceDoc(from, to);
-
-    let insertion: string;
-    let newCursorFrom: number;
-    let newCursorTo: number;
-
-    const isWrapped =
-      state.sliceDoc(from - syntax.length, from) === syntax &&
-      state.sliceDoc(to, to + syntax.length) === syntax;
-
-    if (isWrapped) {
-      dispatch({
-        changes: {
-          from: from - syntax.length,
-          to: to + syntax.length,
-          insert: selectedText,
-        },
-        selection: {
-          anchor: from - syntax.length,
-          head: to - syntax.length,
-        },
-      });
-    } else {
-      if (syntax.endsWith(" ")) {
-        insertion = `${syntax}${selectedText}`;
-        newCursorFrom = from + syntax.length;
-        newCursorTo = to + syntax.length;
-      } else {
-        insertion = `${syntax}${selectedText}${syntax}`;
-        newCursorFrom = from + syntax.length;
-        newCursorTo = to + syntax.length;
-      }
-      dispatch({
-        changes: { from, to, insert: insertion },
-        selection: { anchor: from + syntax.length, head: to + syntax.length },
-      });
-    }
-    view.focus();
-  };
-
-  $effect(() => {
-    editorSettings.showSettings = !!chooseFile;
-  });
 
   async function enterProject() {
     if (!newName) return;
@@ -124,7 +69,8 @@
         currentProject = name_file;
         get_files();
       } else {
-        content = result;
+        doc.pages[0].text = result || "";
+        doc.currentIndex = 0;
         chooseFile = name_file;
         navState.isVisible = !navState.isVisible;
       }
@@ -134,7 +80,8 @@
   }
 
   async function saveContent() {
-    await invoke("write_to_file", { msg: content, file: chooseFile });
+    const fullText = doc.pages.map((p) => p.text).join("\n");
+    await invoke("write_to_file", { msg: fullText, file: chooseFile });
   }
 
   async function deleteFile(name_file: string) {
@@ -152,7 +99,8 @@
 
   function closeFile() {
     chooseFile = null;
-    content = "";
+    doc.pages = [{ id: 1, text: "" }];
+    doc.currentIndex = 0;
     navState.isVisible = !navState.isVisible;
     get_files();
   }
@@ -210,11 +158,7 @@
         class="flex justify-center items-center w-full h-screen overflow-auto font-mono text-lg"
       >
         <div class="relative">
-          <Editor
-            bind:value={doc.currentPage.text}
-            bind:view={doc.view}
-            onAddPage={doc.addPage}
-          />
+          <Editor bind:value={doc.currentPage.text} onAddPage={doc.addPage} />
           <div
             class="absolute top-4 left-[calc(100%+16px)] flex flex-col gap-3 w-40"
           >
@@ -222,7 +166,7 @@
               <p class="text-sm text-black/50 select-none">Страницы</p>
               <p class="text-lg text-black/50 font-bold select-none">
                 {doc.currentIndex + 1}/{doc.pages.length}
-              </p>  
+              </p>
             </div>
 
             <!-- Кнопка создания новой страницы вручную -->
