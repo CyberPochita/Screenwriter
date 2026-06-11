@@ -25,7 +25,6 @@
 
 <style>
   :global(.cm-editor) {
-    height: 400px;
     outline: none !important;
   }
   
