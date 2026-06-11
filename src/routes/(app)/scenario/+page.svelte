@@ -5,8 +5,8 @@
   import { getContext } from "svelte";
   import { createDocumentStore } from "$lib/components/documentStore.svelte";
 
-  import "../../../lib/components/EditPanel.svelte";
-  import Editor from "../../../lib/components/Editor.svelte";
+  import "$lib/components/EditPanel.svelte";
+  import Editor from "$lib/components/Editor.svelte";
 
   interface NavState {
     isVisible: boolean;
@@ -21,6 +21,10 @@
   let view = $state<EditorView | null>(null);
   let currentProject = $state("scenarios");
   const doc = createDocumentStore();
+
+  function handleOverflow(char: string) {
+    doc.addPage(char);
+  }
 
   editorSettings.applyStyle = (syntax: string) => {
     if (!view) return;
@@ -206,28 +210,42 @@
         class="flex justify-center items-center w-full h-screen overflow-auto font-mono text-lg"
       >
         <div class="relative">
-          <Editor bind:value={doc.currentPage.text} bind:view={doc.view} />
+          <Editor
+            bind:value={doc.currentPage.text}
+            bind:view={doc.view}
+            onAddPage={doc.addPage}
+          />
           <div
-            class="absolute top-4 left-[calc(100%+16px)] flex flex-col gap-186 w-30"
+            class="absolute top-4 left-[calc(100%+16px)] flex flex-col gap-3 w-40"
           >
-            <p class="text-sm opacity-70 select-none">Страницы</p>
+            <div class="flex flex-col gap-1 text-white/70">
+              <p class="text-sm text-black/50 select-none">Страницы</p>
+              <p class="text-lg text-black/50 font-bold select-none">
+                {doc.currentIndex + 1}/{doc.pages.length}
+              </p>  
+            </div>
 
+            <!-- Кнопка создания новой страницы вручную -->
+            <button
+              onclick={() => doc.addPage()}
+              class="w-full py-2.5 px-4 bg-white/10 border border-white/10 text-black/50 rounded-xl font-sans text-sm font-semibold hover:bg-black hover:text-white hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer text-center"
+            >
+              Создать страницу
+            </button>
+
+            <!-- Стрелочки перелистывания -->
             <div class="flex gap-1 h-11">
               <button
                 onclick={doc.prev}
                 disabled={doc.currentIndex === 0}
-                class="flex-1 flex items-center justify-center p-3 bg-white/40 border border-white/10 rounded-2xl
-                hover:bg-white hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-30 disabled:pointer-events-none
-                transition-all cursor-pointer"
+                class="flex-1 flex items-center justify-center p-3 bg-white/10 text-black/50 border border-white/10 rounded-2xl hover:bg-black hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
               >
                 ❮
               </button>
               <button
                 onclick={doc.next}
                 disabled={doc.currentIndex === doc.pages.length - 1}
-                class="flex-1 flex items-center justify-center p-3 bg-white/40 border border-white/10 rounded-2xl
-                hover:bg-white hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-30 disabled:pointer-events-none
-                transition-all cursor-pointer"
+                class="flex-1 flex items-center justify-center p-3 bg-white/10 border border-white/10 rounded-2xl text-black/50 hover:bg-black hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
               >
                 ❯
               </button>

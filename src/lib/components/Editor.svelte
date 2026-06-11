@@ -1,12 +1,24 @@
 <!-- src/lib/components/editor.svelte -->
 <script lang="ts">
   import CodeMirror from "svelte-codemirror-editor";
+  import { keymap } from "@codemirror/view";
   import "../../theme.css";
   
   let { 
     value = $bindable(''), 
-    view = $bindable(null) 
+    view = $bindable(null),
+    onAddPage = () => {}
   } = $props();
+
+  const hotkeysExtension = keymap.of([
+    {
+      key: "Ctrl-Enter",
+      run: () => {
+        onAddPage();
+        return true;
+      }
+    }
+  ]);
 </script>
 
 <div class="zoom-[0.75] select-none">
@@ -19,12 +31,14 @@
       lineNumbers={false}
       foldGutter={false}
       highlight={false as any}
+      extensions={[hotkeysExtension]}
     />
   </div>
 </div>
 
 <style>
   :global(.cm-editor) {
+    height: 1200px;
     outline: none !important;
   }
   
