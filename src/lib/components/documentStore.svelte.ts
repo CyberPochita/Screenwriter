@@ -18,8 +18,14 @@ export function createDocumentStore() {
     get pages() {
       return pages;
     },
+    set pages(v) {
+      pages = v;
+    },
     get currentIndex() {
       return currentIndex;
+    },
+    set currentIndex(v) {
+      currentIndex = v;
     },
     get currentPage() {
       return pages[currentIndex];
