@@ -34,20 +34,20 @@
       >
         <button
           onclick={manager.closeFile}
-          class="font-mono text-xs opacity-40 hover:opacity-100 transition-opacity"
+          class="font-mono text-sm opacity-40 hover:opacity-100 transition-opacity"
         >
           ← ВЕРНУТЬСЯ В АРХИВ
         </button>
         <div class="text-center">
           <h2 class="text-xl italic">{manager.chooseFile}</h2>
           <span
-            class="font-mono text-[9px] uppercase tracking-widest opacity-30"
+            class="font-mono text-xs uppercase tracking-widest opacity-50"
             >Режим редактирования</span
           >
         </div>
         <button
           onclick={manager.saveContent}
-          class="bg-black text-white px-4 py-1 text-xs font-mono uppercase rounded-sm hover:bg-gray-800 transition-colors"
+          class="bg-black text-white px-4 py-1 text-sm font-mono uppercase rounded-sm hover:bg-gray-800 transition-colors"
         >
           Сохранить
         </button>
@@ -60,8 +60,9 @@
         <div class="relative">
           <Editor bind:value={doc.currentPage.text} onAddPage={doc.addPage} />
           <div
-            class="absolute top-4 left-[calc(100%+16px)] flex flex-col gap-3 w-40"
+            class="absolute top-4 left-[calc(100%+16px)] flex flex-col gap-3 w-40 min-h-205"
           >
+            <!-- Этот блок останется наверху -->
             <div class="flex flex-col gap-1 text-white/70">
               <p class="text-sm text-black/50 select-none">Страницы</p>
               <p class="text-lg text-black/50 font-bold select-none">
@@ -69,30 +70,33 @@
               </p>
             </div>
 
-            <!-- Кнопка создания новой страницы вручную -->
-            <button
-              onclick={() => doc.addPage()}
-              class="w-full py-2.5 px-4 bg-white/10 border border-white/10 text-black/50 rounded-xl font-sans text-sm font-semibold hover:bg-black hover:text-white hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer text-center"
-            >
-              Создать страницу
-            </button>
+            <!-- НОВЫЙ КОНТЕЙНЕР: mt-auto унесет всё содержимое вниз, а flex-col и gap-3 сохранят отступы между кнопками -->
+            <div class="mt-auto flex flex-col gap-3">
+              <!-- Кнопка создания новой страницы вручную -->
+              <button
+                onclick={() => doc.addPage()}
+                class="w-full py-2.5 px-4 bg-white/10 border border-white/10 text-black/50 rounded-xl font-sans text-sm font-semibold hover:bg-black hover:text-white hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer text-center"
+              >
+                Создать страницу
+              </button>
 
-            <!-- Стрелочки перелистывания -->
-            <div class="flex gap-1 h-11">
-              <button
-                onclick={doc.prev}
-                disabled={doc.currentIndex === 0}
-                class="flex-1 flex items-center justify-center p-3 bg-white/10 text-black/50 border border-white/10 rounded-2xl hover:bg-black hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
-              >
-                ❮
-              </button>
-              <button
-                onclick={doc.next}
-                disabled={doc.currentIndex === doc.pages.length - 1}
-                class="flex-1 flex items-center justify-center p-3 bg-white/10 border border-white/10 rounded-2xl text-black/50 hover:bg-black hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
-              >
-                ❯
-              </button>
+              <!-- Стрелочки перелистывания -->
+              <div class="flex gap-1 h-11">
+                <button
+                  onclick={doc.prev}
+                  disabled={doc.currentIndex === 0}
+                  class="flex-1 flex items-center justify-center p-3 bg-white/10 text-black/50 border border-white/10 rounded-2xl hover:bg-black hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                >
+                  ❮
+                </button>
+                <button
+                  onclick={doc.next}
+                  disabled={doc.currentIndex === doc.pages.length - 1}
+                  class="flex-1 flex items-center justify-center p-3 bg-white/10 border border-white/10 rounded-2xl text-black/50 hover:bg-black hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                >
+                  ❯
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -102,11 +106,11 @@
     <!-- ЭКРАН СПИСКА (АРХИВ) -->
     <header class="mb-10 flex justify-between items-end">
       <div>
-        <h1 class="text-3xl italic">Архив рукописей</h1>
+        <h1 class="text-3xl italic">Сценарии</h1>
         {#if manager.currentProject !== "scenarios"}
           <button
             onclick={manager.exitProject}
-            class="font-mono text-xs opacity-40 hover:opacity-100 transition-opacity"
+            class="font-mono text-sm opacity-40 hover:opacity-100 transition-opacity"
           >
             ← НАЗАД
           </button>
@@ -127,18 +131,18 @@
         <input
           bind:value={manager.newName}
           placeholder="Имя файла/проекта..."
-          class="border-b border-black/10 bg-transparent px-2 text-xs outline-none"
+          class="border-b border-black/10 bg-transparent px-2 text-sm outline-none"
         />
 
         <button
           onclick={manager.enterProject}
-          class="border border-black/10 px-4 py-1 text-xs font-mono uppercase hover:bg-black hover:text-white transition-all"
+          class="border border-black/10 px-4 py-1 text-sm font-mono uppercase hover:bg-black hover:text-white transition-all"
         >
           + Создать проект
         </button>
         <button
           onclick={manager.createScenario}
-          class="border border-black/10 px-4 py-1 text-xs font-mono uppercase hover:bg-black hover:text-white transition-all"
+          class="border border-black/10 px-4 py-1 text-sm font-mono uppercase hover:bg-black hover:text-white transition-all"
         >
           + Создать сценарий
         </button>

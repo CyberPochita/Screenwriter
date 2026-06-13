@@ -28,19 +28,19 @@
     <!-- Пункты меню -->
     <div class="flex w-full flex-col space-y-4 flex-1">
       <a href="/scenario" class="nav-link">
-        <span class="text-sm">Сценарий</span>
+        <span class="text-base">Сценарий</span>
       </a>
 
       <a href="/characters" class="nav-link">
-        <span class="text-sm">Персонажи</span>
+        <span class="text-base">Персонажи</span>
       </a>
 
       <a href="/locations" class="nav-link">
-        <span class="text-sm">Локации</span>
+        <span class="text-base">Локации</span>
       </a>
 
       <a href="/board" class="nav-link">
-        <span class="text-sm">Доска</span>
+        <span class="text-base">Доска</span>
       </a>
     </div>
 
@@ -50,7 +50,7 @@
     </a>
     <a
       href="/"
-      class="nav-link opacity-30 hover:opacity-100 transition-opacity mt-2"
+      class="nav-link opacity-40 hover:opacity-100 transition-opacity mt-2"
     >
       <span class="icon text-sm">Выход</span>
     </a>
