@@ -105,12 +105,12 @@
   {:else}
     <!-- ЭКРАН СПИСКА (АРХИВ) -->
     <header class="mb-10 flex justify-between items-end">
-      <div>
+      <div class="relative pb-5">
         <h1 class="text-3xl italic">Сценарии</h1>
         {#if manager.currentProject !== "scenarios"}
           <button
             onclick={manager.exitProject}
-            class="font-mono text-sm opacity-40 hover:opacity-100 transition-opacity"
+            class="absolute bottom-0 left-0 font-mono text-sm opacity-40 hover:opacity-100 transition-opacity whitespace-nowrap"
           >
             ← НАЗАД
           </button>
