@@ -2,10 +2,11 @@
   import { onMount, onDestroy, getContext } from "svelte";
   import { createDocumentStore } from "$lib/components/documentStore.svelte";
   import { createScenarioManager } from "$lib/scenario/scenarios.svelte";
+  import { fade } from "svelte/transition";
+  import type { FileInfo } from "$lib/types/fileInfo";
 
   import "$lib/components/EditPanel.svelte";
   import Editor from "$lib/components/Editor.svelte";
-
   interface NavState {
     isVisible: boolean;
   }
@@ -70,7 +71,6 @@
               </p>
             </div>
 
-            <!-- НОВЫЙ КОНТЕЙНЕР: mt-auto унесет всё содержимое вниз, а flex-col и gap-3 сохранят отступы между кнопками -->
             <div class="mt-auto flex flex-col gap-3">
               <!-- Кнопка создания новой страницы вручную -->
               <button
@@ -109,6 +109,7 @@
         <h1 class="text-3xl italic">Сценарии</h1>
         {#if manager.currentProject !== "scenarios"}
           <button
+            transition:fade={ { duration: 200 } }
             onclick={manager.exitProject}
             class="absolute bottom-0 left-0 font-mono text-sm opacity-40 hover:opacity-100 transition-opacity whitespace-nowrap"
           >
@@ -120,7 +121,7 @@
       <div class="">
         <p class="font-mono text-xl">
           {#if manager.currentProject}
-            Папка: <span class="italic">{manager.currentProject}</span>
+            Проект: <span class="italic">{manager.currentProject}</span>
           {:else}
             Выберите проект или создайте новый
           {/if}
@@ -157,10 +158,13 @@
         >
           <!-- Основная кнопка -->
           <button
-            onclick={() => manager.loadContent(file)}
+            onclick={() => manager.loadContent(file.file_name)}
             class="flex-1 flex items-center justify-between p-5 bg-white/40 border border-white/10 rounded-2xl hover:bg-white hover:shadow-xl hover:-translate-y-0.5 transition-all text-left"
           >
-            <span class="text-xl text-writer-dark/80">{file}</span>
+            <span class="text-xl text-writer-dark/80">{file.file_name}</span>
+            {#if file.file_format === ""}
+              <span class="text-xl text-writer-dark/80">Проект</span>
+            {/if}
             <span
               class="font-mono text-[10px] opacity-0 group-hover:opacity-40 tracking-tighter transition-opacity duration-300"
             >
@@ -168,7 +172,7 @@
             </span>
           </button>
           <button
-            onclick={() => manager.deleteFile(file)}
+            onclick={() => manager.deleteFile(file.file_name)}
             class="flex items-center justify-center bg-white/40 border border-white/10 rounded-2xl hover:bg-red-500 hover:text-white text-left
                w-0 opacity-0 pointer-events-none overflow-hidden hover:shadow-xl hover:-translate-y-0.5
                group-hover:w-14 group-hover:opacity-100 group-hover:pointer-events-auto

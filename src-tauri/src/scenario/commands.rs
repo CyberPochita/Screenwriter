@@ -1,6 +1,7 @@
 use std::fs::{self, File};
 use std::io::Read;
 use crate::AppState;
+use crate::models::fileinfo::FileInfo;
 
 #[tauri::command(rename_all = "camelCase")]
 pub fn enter_project(state: tauri::State<'_, AppState>, project_name: String) -> Result<String, String> {
@@ -88,20 +89,29 @@ pub async fn entry_file(state: tauri::State<'_, AppState>, name_file: String) ->
 }
 
 #[tauri::command]
-pub async fn get_files(state: tauri::State<'_, AppState>) -> Result<Vec<String>, String> {
+pub async fn get_files(state: tauri::State<'_, AppState>) -> Result<Vec<FileInfo>, String> {
   let opts = state.options.lock().map_err(|_| "State lock error")?;
   
   let entries = fs::read_dir(&opts.current_dir)
     .map_err(|e| e.to_string())?;
-  let mut files = Vec::new();
+  let mut files: Vec<FileInfo> = Vec::new();
 
   for entry in entries {
     let entry = entry
       .map_err(|e| e.to_string())?;
     
-    if let Ok(name) = entry.file_name().into_string() {
-      files.push(name);
-    }
+    let path = entry.path();
+    let name = path.file_name()
+      .and_then(|s| s.to_str())
+      .unwrap_or("")
+      .to_string();
+
+    let format = path.extension()
+      .and_then(|s| s.to_str())
+      .unwrap_or("")
+      .to_string();
+
+    files.push(FileInfo {file_name: name, file_format: format});
   }
 
   Ok(files)

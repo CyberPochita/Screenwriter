@@ -1,11 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { FileInfo } from "$lib/types/fileInfo";
 
 interface NavState {
   isVisible: boolean;
 }
 
 export function createScenarioManager(navState: NavState, doc: any) {
-  let files = $state<string[]>([]);
+  let files = $state<FileInfo[]>([]);
   let newName = $state("");
   let chooseFile = $state<string | null>(null);
   let currentProject = $state("scenarios");
