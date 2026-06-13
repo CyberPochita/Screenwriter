@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
-  import { onMount, onDestroy } from "svelte";
-  import { getContext } from "svelte";
+  import { onMount, onDestroy, getContext } from "svelte";
   import { createDocumentStore } from "$lib/components/documentStore.svelte";
+  import { createScenarioManager } from "$lib/scenario/scenarios.svelte";
 
   import "$lib/components/EditPanel.svelte";
   import Editor from "$lib/components/Editor.svelte";
@@ -13,140 +12,41 @@
 
   let navState = getContext("nav") as NavState;
   let editorSettings = getContext<any>("editor-settings");
-  let files = $state<string[]>([]);
-  let newName = $state("");
-  let chooseFile = $state<string | null>(null);
-  let currentProject = $state("scenarios");
   const doc = createDocumentStore();
-
-  async function enterProject() {
-    if (!newName) return;
-    try {
-      await invoke("enter_project", { projectName: newName });
-      newName = "";
-      await get_files();
-    } catch (e) {
-      console.error("Failed to enter project:", e);
-    }
-  }
-
-  async function exitProject() {
-    try {
-      let result = await invoke<string | null>("exit_project");
-      currentProject = result || "scenarios";
-      await get_files();
-    } catch (e) {
-      console.error("Failed to exit project:", e);
-    }
-  }
-
-  async function get_files() {
-    try {
-      files = await invoke("get_files");
-    } catch (e) {
-      console.error("Failed to load scenarios:", e);
-    }
-  }
-
-  async function createScenario() {
-    if (!newName) return;
-    try {
-      await invoke("create_file", { name: newName });
-      newName = "";
-      await get_files();
-    } catch (e) {
-      console.error("Failed to create scenarios:", e);
-    }
-  }
-
-  async function loadContent(name_file: string) {
-    try {
-      const result = await invoke<string | null>("entry_file", {
-        nameFile: name_file,
-      });
-      console.log("Результат от функции Rust: ", result);
-      if (result === null) {
-        currentProject = name_file;
-        get_files();
-      } else {
-        doc.pages[0].text = result || "";
-        doc.currentIndex = 0;
-        chooseFile = name_file;
-        navState.isVisible = !navState.isVisible;
-      }
-    } catch (error) {
-      console.error("Ошибка в загрузке контента: ", error);
-    }
-  }
-
-  async function saveContent() {
-    const fullText = doc.pages.map((p) => p.text).join("\n");
-    await invoke("write_to_file", { msg: fullText, file: chooseFile });
-  }
-
-  async function deleteFile(name_file: string) {
-    try {
-      await invoke("delete_file", { name: name_file });
-      if (chooseFile === name_file) {
-        closeFile();
-      } else {
-        await get_files();
-      }
-    } catch (e) {
-      console.error("Failed to delete file:", e);
-    }
-  }
-
-  function closeFile() {
-    chooseFile = null;
-    doc.pages = [{ id: 1, text: "" }];
-    doc.currentIndex = 0;
-    navState.isVisible = !navState.isVisible;
-    get_files();
-  }
-
-  function returnDir() {
-    invoke("return_dir")
-      .then(() => {
-        currentProject = "scenarios";
-      })
-      .catch((e) => {
-        console.error("Failed to return to directory:", e);
-      });
-  }
+  const manager = createScenarioManager(navState, doc);
 
   onMount(() => {
-    get_files();
+    manager.get_files();
   });
 
   onDestroy(() => {
     editorSettings.showSettings = false;
-    returnDir();
+    manager.returnDir();
   });
 </script>
 
 <div class="h-full p-5 font-serif">
-  {#if chooseFile}
+  {#if manager.chooseFile}
     <!-- ЭКРАН РЕДАКТОРА -->
     <div class="flex flex-col h-full animate-in fade-in duration-500">
       <header
         class="mb-6 flex justify-between items-center border-b border-black/5 pb-4"
       >
         <button
-          onclick={closeFile}
+          onclick={manager.closeFile}
           class="font-mono text-xs opacity-40 hover:opacity-100 transition-opacity"
         >
           ← ВЕРНУТЬСЯ В АРХИВ
         </button>
         <div class="text-center">
-          <h2 class="text-xl italic">{chooseFile}</h2>
+          <h2 class="text-xl italic">{manager.chooseFile}</h2>
           <span
             class="font-mono text-[9px] uppercase tracking-widest opacity-30"
             >Режим редактирования</span
           >
         </div>
         <button
-          onclick={saveContent}
+          onclick={manager.saveContent}
           class="bg-black text-white px-4 py-1 text-xs font-mono uppercase rounded-sm hover:bg-gray-800 transition-colors"
         >
           Сохранить
@@ -203,9 +103,9 @@
     <header class="mb-10 flex justify-between items-end">
       <div>
         <h1 class="text-3xl italic">Архив рукописей</h1>
-        {#if currentProject !== "scenarios"}
+        {#if manager.currentProject !== "scenarios"}
           <button
-            onclick={exitProject}
+            onclick={manager.exitProject}
             class="font-mono text-xs opacity-40 hover:opacity-100 transition-opacity"
           >
             ← НАЗАД
@@ -215,8 +115,8 @@
 
       <div class="">
         <p class="font-mono text-xl">
-          {#if currentProject}
-            Папка: <span class="italic">{currentProject}</span>
+          {#if manager.currentProject}
+            Папка: <span class="italic">{manager.currentProject}</span>
           {:else}
             Выберите проект или создайте новый
           {/if}
@@ -225,19 +125,19 @@
 
       <div class="flex gap-2">
         <input
-          bind:value={newName}
+          bind:value={manager.newName}
           placeholder="Имя файла/проекта..."
           class="border-b border-black/10 bg-transparent px-2 text-xs outline-none"
         />
 
         <button
-          onclick={enterProject}
+          onclick={manager.enterProject}
           class="border border-black/10 px-4 py-1 text-xs font-mono uppercase hover:bg-black hover:text-white transition-all"
         >
           + Создать проект
         </button>
         <button
-          onclick={createScenario}
+          onclick={manager.createScenario}
           class="border border-black/10 px-4 py-1 text-xs font-mono uppercase hover:bg-black hover:text-white transition-all"
         >
           + Создать сценарий
@@ -246,14 +146,14 @@
     </header>
 
     <div class="flex flex-col gap-3">
-      {#each files as file}
+      {#each manager.files as file}
         <!-- Контейнер для пары кнопок -->
         <div
           class="group flex items-stretch gap-0 hover:gap-3 w-full transition-all duration-300"
         >
           <!-- Основная кнопка -->
           <button
-            onclick={() => loadContent(file)}
+            onclick={() => manager.loadContent(file)}
             class="flex-1 flex items-center justify-between p-5 bg-white/40 border border-white/10 rounded-2xl hover:bg-white hover:shadow-xl hover:-translate-y-0.5 transition-all text-left"
           >
             <span class="text-xl text-writer-dark/80">{file}</span>
@@ -263,10 +163,8 @@
               ЧИТАТЬ →
             </span>
           </button>
-
-          <!-- Кнопка удаления с плавной анимацией появления -->
           <button
-            onclick={() => deleteFile(file)}
+            onclick={() => manager.deleteFile(file)}
             class="flex items-center justify-center bg-white/40 border border-white/10 rounded-2xl hover:bg-red-500 hover:text-white text-left
                w-0 opacity-0 pointer-events-none overflow-hidden hover:shadow-xl hover:-translate-y-0.5
                group-hover:w-14 group-hover:opacity-100 group-hover:pointer-events-auto
