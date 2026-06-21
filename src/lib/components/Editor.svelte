@@ -5,17 +5,23 @@
 
   let { 
     value = $bindable(''), 
+    // ДОБАВЛЕНО: Принимаем id текущей страницы для изоляции эффекта
+    pageId = 1,
     onAddPage = () => {} 
   } = $props();
 
   let containerRef = $state<HTMLDivElement | null>(null);
   let editorRef = $state<HTMLDivElement | null>(null);
 
-  // Синхронизация текста: загружаем текст в редактор только при смене страницы
-  // Это предотвращает разрыв фокуса курсора при обычной печати
+  // ИСПРАВЛЕНО: Эффект теперь жестко изолирован. 
+  // Он срабатывает ТОЛЬКО тогда, когда изменился pageId (перелистывание страниц в Word).
+  // Во время обычной печати или работы макросов на текущей странице этот код спать!
   $effect(() => {
-    if (editorRef && editorRef.innerHTML !== value) {
-      editorRef.innerHTML = value || "";
+    // Явно читаем pageId, чтобы Свелт подписался только на этот триггер
+    const _trigger = pageId; 
+    
+    if (editorRef && editorRef.innerText !== value) {
+      editorRef.innerText = value || "";
     }
   });
 
@@ -26,19 +32,18 @@
     }
   }
 
-  // Срабатывает во время печати
+  // Срабатывает при ЛЮБОМ вводе или макросе
   function handleInput(event: Event) {
     if (!editorRef || !containerRef) return;
 
-    // Сверяем высоту: если внутренний текст стал больше, чем физическая коробка А4
+    // Проверка на переполнение листа А4
     if (editorRef.scrollHeight > containerRef.clientHeight) {
-      // Отменяем ввод последнего символа встроенным методом браузера
       document.execCommand("undo", false);
       return;
     }
 
-    // Если всё в порядке, сохраняем текст в переменную Svelte
-    value = editorRef.innerHTML;
+    // Сохраняем чистый текст в стейт Svelte без триггера обратного эффекта
+    value = editorRef.innerText;
   }
 
   onMount(() => {
@@ -47,21 +52,7 @@
 </script>
 
 <div class="zoom-[0.75] select-none">
-  <!-- 
-    ВНЕШНИЙ ДИВ (containerRef): 
-    Управляет внешним видом листа А4. Его высота (clientHeight) всегда стабильна 
-    и равна 297mm, зум больше не сможет сломать её в JS-замерах!
-  -->
-  <div 
-    bind:this={containerRef} 
-    class="w-a4 h-a4 overflow-hidden bg-white/90 rounded-lg shadow-inner box-border relative"
-  >
-    
-    <!-- 
-      ВНУТРЕННИЙ РЕДАКТИРУЕМЫЙ ДИВ: 
-      Он больше не связан через bind:textContent, поэтому буквы будут печататься 
-      идеально свободно, плавно и без задержек.
-    -->
+  <div bind:this={containerRef} class="w-a4 h-a4 overflow-hidden bg-white rounded-lg shadow-inner box-border relative">
     <div 
       bind:this={editorRef}
       contenteditable="true"
@@ -70,11 +61,10 @@
       aria-label="Редактор сценария"
       onkeydown={handleKeyDown}
       oninput={handleInput} 
-      class="editor-wrapper w-full h-full p-8 font-mono text-lg whitespace-pre-wrap break-words text-left outline-none box-border"
-      style="outline: none;"
+      class="editor-wrapper w-full h-full p-4 font-mono text-lg text-left outline-none box-border"
+      style="outline: none; white-space: pre-wrap; word-break: break-all;"
     >
     </div>
-
   </div>
 </div>
 
@@ -84,5 +74,7 @@
     cursor: text;
     line-height: 1.6;
     color: #1e1e1e;
+    font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+    font-size: 16px;
   }
 </style>

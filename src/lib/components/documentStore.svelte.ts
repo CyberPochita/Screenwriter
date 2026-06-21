@@ -1,26 +1,20 @@
 import { EditorView } from "@codemirror/view";
-import type { ITitlePage } from "$lib/types/titlePage";
+import type { IPageContent, IPageFormatting, IScenarioDocument } from "$lib/types/titlePage";
+
+// Дефолтные настройки полей для обычного текста сценария
+const DEFAULT_SCRIPT_FORMATTING: IPageFormatting = {
+  top_margin: 0,
+  left_margin: 3.25,  // 3.25 см слева
+  right_margin: 2.5,  // Обычное правое поле сценария
+  contact_left_margin: 0
+};
 
 export function createDocumentStore() {
-  // Существующее состояние страниц редактора CodeMirror
-  let pages = $state([{ id: 1, text: "" }]);
+  let pages = $state<IPageContent[]>([
+    { id: 1, formatting: { ...DEFAULT_SCRIPT_FORMATTING }, text: "" }
+  ]);
   let currentIndex = $state(0);
   let view = $state<EditorView | null>(null);
-  let activeTab = $state<'editor' | 'title'>('editor');
-
-  // НОВОЕ: Полностью реактивное состояние титульного листа сценария
-  let titlePage = $state<ITitlePage>({
-    title: '',
-    author: '',
-    authorship: 'original',
-    contact: { 
-      name: '',
-      address: null, // Теперь TS без проблем разрешает присваивать null
-      phone: null,
-      email: null,
-      agent: null
-    }
-  });
 
   function focusEditor() {
     queueMicrotask(() => {
@@ -32,7 +26,6 @@ export function createDocumentStore() {
   }
 
   return {
-    // Геттеры и сеттеры страниц и вьювера
     get pages() { return pages; },
     set pages(v) { pages = v; },
     get currentIndex() { return currentIndex; },
@@ -40,71 +33,45 @@ export function createDocumentStore() {
     get currentPage() { return pages[currentIndex]; },
     get view() { return view; },
     set view(v) { view = v; },
-    get activeTab() { return activeTab; },
-    set activeTab(v) { activeTab = v; },
 
-    // НОВОЕ: Геттер для получения реактивной структуры титульного листа в UI
-    get titlePage() { return titlePage; },
-
-    // НОВОЕ: Метод восстановления стора из XML-документа, пришедшего от Rust
-    setFromNetwork(loadedDoc: { title_page: ITitlePage; pages: any[] }) {
-      // Инициализируем титульный лист
-      titlePage = loadedDoc.title_page;
-      
-      // Преобразуем массив объектов от Rust с учетом переименования Serde ($value)
+    // Восстановление всех страниц из XML файла .writer
+    setFromNetwork(loadedDoc: IScenarioDocument) {
       if (loadedDoc.pages && loadedDoc.pages.length > 0) {
         pages = loadedDoc.pages.map((p, index) => ({
           id: index + 1,
-          // Читаем из ключа "$value", который присылает бэкенд. 
-          // Если страница абсолютно пустая, подставляем ""
-          text: p["$value"] ?? p.text ?? ""
+          formatting: p.formatting ?? { ...DEFAULT_SCRIPT_FORMATTING },
+          text: p.text ?? ""
         }));
       } else {
-        pages = [{ id: 1, text: "" }];
+        pages = [{ id: 1, formatting: { ...DEFAULT_SCRIPT_FORMATTING }, text: "" }];
       }
-      
       currentIndex = 0;
       focusEditor();
     },
 
-    // НОВОЕ: Сборка и очистка данных (Snapshot) для безопасной отправки в IPC Tauri команду write_to_file
+    // Сборка для записи XML-документа на бэкенд
     getCompilePayload() {
-      // Гарантируем, что даже если текст пустой, мы передаем ""
-      const cleanPages = pages.map(p => ({ text: p.text || "" }));
-      const snapshotTitle = $state.snapshot(titlePage);
-
-      // Ваша существующая очистка контактов...
-      if (snapshotTitle.contact) {
-        if (snapshotTitle.contact.address === "") snapshotTitle.contact.address = null;
-        if (snapshotTitle.contact.phone === "") snapshotTitle.contact.phone = null;
-        if (snapshotTitle.contact.email === "") snapshotTitle.contact.email = null;
-      }
-
       return {
-        title_page: snapshotTitle,
-        pages: cleanPages
+        // Очищаем от ID перед отправкой в Rust
+        pages: pages.map(p => ({
+          formatting: $state.snapshot(p.formatting),
+          text: p.text
+        }))
       };
     },
 
-    // Ваши оригинальные методы навигации и создания страниц
     next() {
-      if (currentIndex < pages.length - 1) {
-        currentIndex++;
-        focusEditor();
-      }
+      if (currentIndex < pages.length - 1) { currentIndex++; focusEditor(); }
     },
     prev() {
-      if (currentIndex > 0) {
-        currentIndex--;
-        focusEditor();
-      }
+      if (currentIndex > 0) { currentIndex--; focusEditor(); }
     },
     addPage(initialText = '') {
       const newId = pages.length > 0 ? Math.max(...pages.map(p => p.id)) + 1 : 1;
-      pages.push({ id: newId, text: initialText });
+      // Новая страница создается со стандартными полями
+      pages.push({ id: newId, formatting: { ...DEFAULT_SCRIPT_FORMATTING }, text: initialText });
       currentIndex = pages.length - 1;
-
       focusEditor();
-    },
+    }
   };
 }

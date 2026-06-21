@@ -1,11 +1,9 @@
 use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::io::Read;
 use crate::AppState;
 use crate::models::fileinfo::FileInfo;
-// Импортируем нашу корневую структуру документа
-use crate::models::scenario_document::ScenarioDocument;
-// Импортируем TitlePage для инициализации новых файлов шаблоном
-use crate::models::structure_xml::TitlePage;
+use crate::models::scenario_document::{ScenarioDocument, PageContent};
+use crate::models::xml_struct::formatting::Formatting;
 
 #[tauri::command(rename_all = "camelCase")]
 pub fn enter_project(state: tauri::State<'_, AppState>, projectName: String) -> Result<String, String> {
@@ -32,28 +30,23 @@ pub async fn create_file(state: tauri::State<'_, AppState>, name: String) -> Res
     let opts = state.options.lock().map_err(|_| "State lock error")?;
     let file_path = opts.current_dir.join(&name);
 
-    // Если файл уже существует — не перезаписываем его, чтобы не стереть данные
     if file_path.exists() {
         return Err("Файл с таким именем уже существует".to_string());
     }
 
-    // Создаем пустой дефолтный шаблон документа, чтобы XML-парсер не ломался при открытии
+    // Инициализируем документ Word-style: только массив страниц
     let default_doc = ScenarioDocument {
-        title_page: TitlePage {
-            formatting: Default::default(), // Вызывает реализованный нами ранее Default
-            title: name.replace(".writer", "").to_uppercase(),
-            author: "".to_string(),
-            authorship: crate::models::xml_struct::authorship::Authorship::Original,
-            contact: crate::models::xml_struct::contact_info::ContactInfo {
-                left_margin: 8.25,
-                name: Some("".to_string()),
-                address: None,
-                phone: None,
-                email: None,
-                agent: None,
+        pages: vec![PageContent {
+            // Задаем базовые сценарные поля для первой страницы по умолчанию
+            formatting: Formatting {
+                top_margin: 0,
+                left_margin: 3.25,
+                right_margin: 2.5,
+                contact_left_margin: 0.0,
             },
-        },
-        pages: vec![crate::models::scenario_document::PageContent { text: "".to_string() }],
+            // Изначально страница абсолютно пустая
+            text: "".to_string(),
+        }],
     };
 
     // Сериализуем дефолтную структуру в XML строку
