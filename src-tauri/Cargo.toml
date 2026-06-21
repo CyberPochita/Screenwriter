@@ -24,3 +24,5 @@ log = "0.4"
 tauri = { version = "2.11.1", features = [] }
 tauri-plugin-log = "2"
 dirs-next = "2.0.0"
+chrono = "0.4.45"
+quick-xml = { version = "0.39.4", features = ["serialize", "serde"] }
