@@ -51,25 +51,24 @@ export function createScenarioManager(navState: NavState, doc: any) {
     }
   }
 
-  async function loadContent(name_file: string) {
-    try {
-      const result = await invoke<string | null>("entry_file", {
-        nameFile: name_file,
-      });
-      console.log("Результат от функции Rust: ", result);
-      if (result === null) {
-        currentProject = name_file;
-        get_files();
-      } else {
-        doc.pages[0].text = result || "";
-        doc.currentIndex = 0;
-        chooseFile = name_file;
-        navState.isVisible = !navState.isVisible;
-      }
-    } catch (error) {
-      console.error("Ошибка в загрузке контента: ", error);
+  async function loadContent(fileName: string) {
+  try {
+    // Rust возвращает структуру ScenarioDocument в формате JSON-объекта
+    const result = await invoke<any>("entry_file", { nameFile: fileName });
+    
+    if (result) {
+      // КРИТИЧЕСКИ ВАЖНО: Вызываем метод стора, который мы писали ранее.
+      // Он сам разложит title_page по полочкам, а массив страниц преобразует в [{ id: 1, text: "..." }]
+      doc.setFromNetwork(result); 
+      
+      // Активируем экран редактора
+      chooseFile = fileName;
+      navState.isVisible = !navState.isVisible;
     }
+  } catch (err) {
+    console.error("Ошибка в загрузке контента: ", err);
   }
+}
 
   async function saveContent() {
     const fullText = doc.pages.map((p: any) => p.text).join("\n");
