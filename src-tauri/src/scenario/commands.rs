@@ -1,16 +1,20 @@
 use std::fs::{self, File};
-use std::io::Read;
+use std::io::{Read, Write};
 use crate::AppState;
 use crate::models::fileinfo::FileInfo;
+// Импортируем нашу корневую структуру документа
+use crate::models::scenario_document::ScenarioDocument;
+// Импортируем TitlePage для инициализации новых файлов шаблоном
+use crate::models::structure_xml::TitlePage;
 
 #[tauri::command(rename_all = "camelCase")]
-pub fn enter_project(state: tauri::State<'_, AppState>, project_name: String) -> Result<String, String> {
+pub fn enter_project(state: tauri::State<'_, AppState>, projectName: String) -> Result<String, String> {
     let opts = state.options.lock().map_err(|_| "State lock error")?;
     
-    let project_path = opts.scenarios_dir.join(&project_name);
+    let project_path = opts.scenarios_dir.join(&projectName);
     fs::create_dir_all(&project_path).map_err(|e| e.to_string())?;
  
-    Ok(format!("Вошли в проект: {}", project_name))
+    Ok(format!("Вошли в проект: {}", projectName))
 }
 
 #[tauri::command]
@@ -22,17 +26,46 @@ pub fn exit_project(state: tauri::State<'_, AppState>) -> Result<String, String>
     Ok(opts.current_dir.file_name().and_then(|name| name.to_str()).unwrap_or("").to_string())
 }
 
-#[tauri::command]
+/// Создание файла: Теперь сразу инициализирует .writer файл валидной XML структурой
+#[tauri::command(rename_all = "camelCase")]
 pub async fn create_file(state: tauri::State<'_, AppState>, name: String) -> Result<String, String> {
-  let opts = state.options.lock().map_err(|_| "State lock error")?;
+    let opts = state.options.lock().map_err(|_| "State lock error")?;
+    let file_path = opts.current_dir.join(&name);
 
-  let file_path = opts.current_dir.join(name);
-  File::create(file_path).map_err(|_| "Failed create file")?;
+    // Если файл уже существует — не перезаписываем его, чтобы не стереть данные
+    if file_path.exists() {
+        return Err("Файл с таким именем уже существует".to_string());
+    }
 
-  Ok("File created".to_string())
+    // Создаем пустой дефолтный шаблон документа, чтобы XML-парсер не ломался при открытии
+    let default_doc = ScenarioDocument {
+        title_page: TitlePage {
+            formatting: Default::default(), // Вызывает реализованный нами ранее Default
+            title: name.replace(".writer", "").to_uppercase(),
+            author: "".to_string(),
+            authorship: crate::models::xml_struct::authorship::Authorship::Original,
+            contact: crate::models::xml_struct::contact_info::ContactInfo {
+                left_margin: 8.25,
+                name: Some("".to_string()),
+                address: None,
+                phone: None,
+                email: None,
+                agent: None,
+            },
+        },
+        pages: vec![crate::models::scenario_document::PageContent { text: "".to_string() }],
+    };
+
+    // Сериализуем дефолтную структуру в XML строку
+    let xml_string = default_doc.save_to_xml_string().map_err(|e| e.to_string())?;
+
+    // Записываем структуру на диск
+    fs::write(&file_path, xml_string).map_err(|e| format!("Не удалось инициализировать файл: {}", e))?;
+
+    Ok("File created and initialized".to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub async fn delete_file(state: tauri::State<'_, AppState>, name: String) -> Result<String, String> {
   let opts = state.options.lock().map_err(|_| "State lock error")?;
 
@@ -50,42 +83,58 @@ pub async fn delete_file(state: tauri::State<'_, AppState>, name: String) -> Res
   Ok("File deleted".to_string())
 }
 
-//TODO: Переписать функцию с использованием opts.current_dir вместо жесткого пути
-#[tauri::command]
-pub async fn write_to_file(state: tauri::State<'_, AppState>, msg: String, file: String) -> Result<String, String> {
-  let opts = state.options.lock().map_err(|_| "State lock error")?;
-  let file_path = opts.current_dir.join(file);
+/// Запись: Принимает готовый типизированный ScenarioDocument, превращает в XML и пишет на диск
+#[tauri::command(rename_all = "camelCase")]
+pub async fn write_to_file(
+    state: tauri::State<'_, AppState>, 
+    document: ScenarioDocument, // Принимаем структуру вместо String
+    file: String
+) -> Result<String, String> {
+    let opts = state.options.lock().map_err(|_| "State lock error")?;
+    let file_path = opts.current_dir.join(file);
 
-  fs::write(file_path, msg)
-    .map_err(|_| "Error write to file")?;
-  Ok("File written".to_string())
+    // Сериализуем данные в XML-строку через методы нашей структуры
+    let xml_content = document.save_to_xml_string().map_err(|e| e.to_string())?;
+
+    // Записываем XML-контент на диск
+    fs::write(file_path, xml_content).map_err(|e| format!("Ошибка записи файла: {}", e))?;
+    
+    Ok("File written successfully".to_string())
 }
 
-#[tauri::command]
-pub async fn entry_file(state: tauri::State<'_, AppState>, name_file: String) -> Result<Option<String>, String> {
-  let mut opts = state.options.lock().map_err(|_| "State lock error")?;
-  let path = opts.current_dir.join(&name_file);
-  let metadata = fs::metadata(&path)
-    .map_err(|e| format!("Не удалось прочитать путь: {}", e))?;
-  println!("До условий: {:?}", opts.current_dir);
+/// Чтение: Возвращает десериализованную структуру ScenarioDocument вместо сырой строки
+#[tauri::command(rename_all = "camelCase")]
+pub async fn entry_file(
+    state: tauri::State<'_, AppState>, 
+    name_file: String
+) -> Result<Option<ScenarioDocument>, String> { // Возвращаем ScenarioDocument вместо String
+    let mut opts = state.options.lock().map_err(|_| "State lock error")?;
+    let path = opts.current_dir.join(&name_file);
+    let metadata = fs::metadata(&path).map_err(|e| format!("Не удалось прочитать путь: {}", e))?;
+    
+    println!("До условий: {:?}", opts.current_dir);
 
-  if metadata.is_dir() {
-    println!("Условие - папка: {:?}", opts.current_dir.join(&name_file));
-    opts.current_dir.push(&name_file);
-    Ok(None)
-  }
-  else if metadata.is_file() {
-    println!("Условие - файл: {:?}", opts.current_dir.join(&name_file));
-    let mut content = String::new();
-    let mut file = File::open(&path).map_err(|e| e.to_string())?;
-    file.read_to_string(&mut content).map_err(|e| e.to_string())?;
+    if metadata.is_dir() {
+        println!("Условие - папка: {:?}", opts.current_dir.join(&name_file));
+        opts.current_dir.push(&name_file);
+        Ok(None)
+    } else if metadata.is_file() {
+        println!("Условие - файл: {:?}", opts.current_dir.join(&name_file));
+        
+        // Читаем сырой XML-текст из файла
+        let mut xml_content = String::new();
+        let mut file = File::open(&path).map_err(|e| e.to_string())?;
+        file.read_to_string(&mut xml_content).map_err(|e| e.to_string())?;
 
-    Ok(Some(content))
-  }
-  else {
-    println!("Ошибка в условиях {:?}\n{:?}", opts.current_dir.join(&name_file), opts.current_dir);
-    Err("Указанный путь не является ни файлом, ни директорией".to_string())
-  }
+        // Десериализуем XML-строку обратно в готовую структуру
+        let document = ScenarioDocument::load_from_xml_string(&xml_content).map_err(|e| e.to_string())?;
+
+        // Возвращаем структуру (Tauri превратит её в JSON-объект для фронтенда)
+        Ok(Some(document))
+    } else {
+        println!("Ошибка в условиях {:?}\n{:?}", opts.current_dir.join(&name_file), opts.current_dir);
+        Err("Указанный путь не является ни файлом, ни директорией".to_string())
+    }
 }
 
 #[tauri::command]
