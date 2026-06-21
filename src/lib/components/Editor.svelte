@@ -5,7 +5,6 @@
 
   let { 
     value = $bindable(''), 
-    // ДОБАВЛЕНО: Принимаем id текущей страницы для изоляции эффекта
     pageId = 1,
     onAddPage = () => {} 
   } = $props();
@@ -13,15 +12,13 @@
   let containerRef = $state<HTMLDivElement | null>(null);
   let editorRef = $state<HTMLDivElement | null>(null);
 
-  // ИСПРАВЛЕНО: Эффект теперь жестко изолирован. 
-  // Он срабатывает ТОЛЬКО тогда, когда изменился pageId (перелистывание страниц в Word).
-  // Во время обычной печати или работы макросов на текущей странице этот код спать!
+  // СИНХРОНИЗАЦИЯ СТРАНИЦ: Срабатывает СТРОГО при перелистывании (смене pageId)
   $effect(() => {
-    // Явно читаем pageId, чтобы Свелт подписался только на этот триггер
-    const _trigger = pageId; 
+    const _trigger = pageId; // Подписываемся на смену ID страницы
     
-    if (editorRef && editorRef.innerText !== value) {
-      editorRef.innerText = value || "";
+    if (editorRef && editorRef.innerHTML !== value) {
+      // Загружаем HTML-разметку (сохраняя &nbsp; и теги строк из XML)
+      editorRef.innerHTML = value || "<div><br></div>";
     }
   });
 
@@ -32,18 +29,18 @@
     }
   }
 
-  // Срабатывает при ЛЮБОМ вводе или макросе
+  // Срабатывает при печати на текущей странице
   function handleInput(event: Event) {
     if (!editorRef || !containerRef) return;
 
-    // Проверка на переполнение листа А4
+    // Валидация переполнения листа А4
     if (editorRef.scrollHeight > containerRef.clientHeight) {
       document.execCommand("undo", false);
       return;
     }
 
-    // Сохраняем чистый текст в стейт Svelte без триггера обратного эффекта
-    value = editorRef.innerText;
+    // Сохраняем в XML-структуру HTML-код (с &nbsp;), чтобы верстка не терялась
+    value = editorRef.innerHTML;
   }
 
   onMount(() => {
