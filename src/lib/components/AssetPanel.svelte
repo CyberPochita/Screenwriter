@@ -61,7 +61,7 @@
               Вместо ненадежного нативного draggable используем onmousedown для виртуального переноса.
             -->
             <div
-              onmousedown={(e) => assets.startVirtualDrag(e, file)}
+              onmousedown={(e) => assets.startVirtualDrag(e, file, "character")}
               class="h-11 px-3 shrink-0 rounded-lg border border-black/10 bg-white text-black/70 font-mono text-[13px] 
                      transition-all hover:bg-black hover:text-white hover:border-black active:scale-[0.98] 
                      cursor-grab active:cursor-grabbing flex items-center justify-between min-w-[140px] shadow-sm select-none"
@@ -73,13 +73,20 @@
             <p class="font-mono text-xs opacity-30 w-full text-center py-4">Папка персонажей пуста</p>
           {/each}
         {:else if assets.activeFolder === 'locations'}
-          <!-- Папка Локаций -->
-          <div
-            class="h-11 px-3 shrink-0 rounded-lg border border-dashed border-black/10 text-black/40 font-mono text-[12px] 
-                   flex items-center justify-center w-full"
-          >
-            Папка локаций пуста (В разработке)
-          </div>
+          <!-- 🌟 ИСПРАВЛЕНО: Рендерим реальный список локаций проекта -->
+          {#each assets.locationList as file}
+            <div
+              onmousedown={(e) => assets.startVirtualDrag(e, file, "location")}
+              class="h-11 px-3 shrink-0 rounded-lg border border-black/10 bg-white text-black/70 font-mono text-[13px] 
+                     transition-all hover:bg-black hover:text-white hover:border-black active:scale-[0.98] 
+                     cursor-grab active:cursor-grabbing flex items-center justify-between min-w-[160px] shadow-sm select-none"
+            >
+              <span class="capitalize truncate pr-2">{file.replace(".writer", "").replace(/_/g, " ")}</span>
+              <span class="text-[10px] opacity-30 select-none shrink-0">📍</span>
+            </div>
+          {:else}
+            <p class="font-mono text-xs opacity-30 w-full text-center py-4">Папка локаций пуста</p>
+          {/each}
         {:else}
           <!-- Начальное состояние: подсказка автору -->
           <div class="w-full text-center font-mono text-xs text-black/30 uppercase tracking-wide py-4">
@@ -95,11 +102,12 @@
 <!-- 🌟 ЛЕТАЮЩИЙ ЗА МЫШКОЙ «ПРИЗРАК» КАРТОЧКИ (Отображается только во время переноса) -->
 {#if assets.isDragging}
   <div 
-    class="fixed z-[9999] px-4 h-11 border border-black bg-black text-white rounded-lg font-mono text-[13px] 
+    class="fixed z- px-4 h-11 border border-black bg-black text-white rounded-lg font-mono text-[13px] 
            pointer-events-none flex items-center justify-center shadow-2xl opacity-90 animate-in fade-in duration-150"
     style="left: {assets.dragPos.x + 12}px; top: {assets.dragPos.y + 12}px;"
   >
-    <span class="mr-2">👤</span>
+    <!-- 🌟 Иконка меняется автоматически -->
+    <span class="mr-2">{assets.dragType === 'character' ? '👤' : '📍'}</span>
     <span class="font-bold tracking-wide">{assets.draggedText}</span>
   </div>
 {/if}

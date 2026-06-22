@@ -1,9 +1,21 @@
 <!-- src/lib/components/Editor.svelte -->
 <script lang="ts">
   import { onMount } from "svelte";
+  import type { MouseEventHandler } from "svelte/elements";
   import "../../theme.css";
 
-  let { value = $bindable(""), pageId = 1, onAddPage = () => {} } = $props();
+  let { 
+    value = $bindable(""), 
+    pageId = 1, 
+    onAddPage = () => {},
+    // Задаем строгий тип вместо Function
+    onMouseMove = (() => {}) as MouseEventHandler<HTMLDivElement>
+  }: {
+    value: string;
+    pageId: number;
+    onAddPage: () => void;
+    onMouseMove?: MouseEventHandler<HTMLDivElement>;
+  } = $props();
 
   let containerRef = $state<HTMLDivElement | null>(null);
   let editorRef = $state<HTMLDivElement | null>(null);
@@ -27,13 +39,14 @@
       return;
     }
 
-    // ИСПРАВЛЕНО: Если нажат обычный Enter, принудительно разрываем наследование стилей реплики
+    // ОБРАБОТКА НАЖАТИЯ ENTER
     if (event.key === "Enter" && !event.ctrlKey) {
       event.preventDefault();
 
-      // Нативно вставляем абсолютно чистый пустой блок строки,
-      // тем самым сбрасывая любые ограничения маргинов и пробелов для следующей строки!
-      document.execCommand("insertHTML", false, "<div><br></div>");
+      // ИСПРАВЛЕНО: Вставляем чистый div со сбросом текстовой трансформации (normal-case)
+      // и явно убираем наследование шрифтовых стилей макросов
+      const clearLineHtml = '<div style="text-transform: none; font-variant: normal;"><br></div>';
+      document.execCommand("insertHTML", false, clearLineHtml);
 
       // Обновляем стейт Svelte
       if (editorRef) value = editorRef.innerHTML;
@@ -72,6 +85,11 @@
       aria-label="Редактор сценария"
       onkeydown={handleKeyDown}
       oninput={handleInput}
+      ondragover={(e) => e.preventDefault()}
+      onmousemove={onMouseMove}
+      ondrop={(e) => {
+        setTimeout(() => { if (editorRef) value = editorRef.innerHTML; }, 10);
+      }}
       class="editor-wrapper w-full h-full p-4 font-mono text-lg text-left outline-none box-border"
       style="outline: none; white-space: pre-wrap; word-break: break-word;"
     ></div>

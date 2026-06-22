@@ -4,13 +4,15 @@ export class AssetPanelManager {
   // Реактивные состояния папок
   activeFolder = $state<"none" | "characters" | "locations">("none");
   characterList = $state<string[]>([]);
+  locationList = $state<string[]>([]); // 🌟 ДОБАВЛЕНО: Список локаций
 
   // Состояния виртуального Drag-and-Drop
   isDragging = $state(false);
   draggedText = $state("");
   dragPos = $state({ x: 0, y: 0 });
+  dragType = $state<"character" | "location">("character"); // 🌟 ДОБАВЛЕНО: Тип перетаскиваемого элемента
 
-  // 🌟 ИСПРАВЛЕНО: Добавлены недостающие свойства для ховера подсказок
+  // Состояния для всплывающего превью (Tooltip) персонажей
   hoveredChar = $state<any>(null);
   tooltipPos = $state({ x: 0, y: 0 });
   showTooltip = $state(false);
@@ -25,45 +27,73 @@ export class AssetPanelManager {
       this.activeFolder = folder;
       if (folder === "characters") {
         this.loadCharacters();
+      } else if (folder === "locations") {
+        this.loadLocations(); // 🌟 ДОБАВЛЕНО: Загрузка локаций при клике
       }
     }
   }
 
-  // Загрузка персонажей из бэкенда на Rust
+  // Загрузка персонажей
   async loadCharacters() {
     try {
       this.characterList = await invoke<string[]>("get_characters");
     } catch (e) {
-      console.error("Не удалось загрузить персонажей для панели:", e);
+      console.error("Не удалось загрузить персонажей:", e);
     }
   }
 
-  // 1. Зажимаем мышку на карточке персонажа (Виртуальный старт)
-  startVirtualDrag(event: MouseEvent, fileName: string) {
+  // 🌟 ДОБАВЛЕНО: Загрузка локаций из бэкенда на Rust
+  async loadLocations() {
+    try {
+      this.locationList = await invoke<string[]>("get_locations");
+    } catch (e) {
+      console.error("Не удалось загрузить локации:", e);
+    }
+  }
+
+  // 🌟 МОДЕРНИЗИРОВАНО: Универсальный старт виртуального переноса
+  async startVirtualDrag(event: MouseEvent, fileName: string, type: "character" | "location") {
     event.preventDefault();
+    this.dragType = type;
     
-    // Генерируем slug (имя файла без расширения, например: potter_harry)
-    const charSlug = fileName.replace(".writer", "");
-    // Красивое имя для печати на листе (ГАРРИ ПОТТЕР)
-    const cleanName = charSlug.replace(/_/g, " ").toUpperCase();
-    
+    const fileSlug = fileName.replace(".writer", "");
+
+    if (type === "character") {
+      const cleanName = fileSlug.replace(/_/g, " ").toUpperCase();
+      this.draggedText = cleanName;
+      (this as any)._currentDragSlug = fileSlug;
+      this.initDragSequence(event);
+    } else {
+      // 🌟 ИСПРАВЛЕНО: Записываем slug локации в память менеджера
+      (this as any)._currentDragSlug = fileSlug;
+
+      try {
+        const locData = await invoke<any>("read_location", { nameFile: fileName });
+        const typeScene = (locData.type_scene || "ИНТ.").toUpperCase();
+        const locName = (locData.name || fileSlug.replace(/_/g, " ")).toUpperCase();
+        const timeDay = (locData.time_day || "ДЕНЬ").toUpperCase();
+        
+        this.draggedText = `${typeScene} ${locName} - ${timeDay}`;
+        this.initDragSequence(event);
+      } catch (e) {
+        console.error("Не удалось прочитать параметры локации для переноса:", e);
+      }
+    }
+  }
+
+  // Вспомогательный метод инициализации движения
+  private initDragSequence(event: MouseEvent) {
     this.isDragging = true;
-    this.draggedText = cleanName;
     this.dragPos = { x: event.clientX, y: event.clientY };
-
-    // Сохраняем slug текущего перетаскиваемого персонажа, чтобы передать его при сбросе
-    (this as any)._currentDragSlug = charSlug;
-
     window.addEventListener("mousemove", this.moveVirtualDrag);
     window.addEventListener("mouseup", this.dropVirtualDrag);
   }
 
-  // 2. Двигаем мышку — копия карточки летит за курсором
   moveVirtualDrag = (event: MouseEvent) => {
     this.dragPos = { x: event.clientX, y: event.clientY };
   };
 
-  // 3. Отпускаем мышку — точечно вставляем HTML токен в текст
+  // 🌟 МОДЕРНИЗИРОВАНО: Умный сброс снайперской вставки с учетом типа ассета
   dropVirtualDrag = (event: MouseEvent) => {
     window.removeEventListener("mousemove", this.moveVirtualDrag);
     window.removeEventListener("mouseup", this.dropVirtualDrag);
@@ -72,37 +102,34 @@ export class AssetPanelManager {
     const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
     if (!editorDiv) return;
 
-    // 🌟 МАТЕМАТИЧЕСКИЙ РАСЧЕТ ДЛЯ КОРРЕКЦИИ ZOOM-[0.75]
-    // Находим реальные физические координаты самого текстового редактора на экране
     const rect = editorDiv.getBoundingClientRect();
-    
-    // Вычисляем, на сколько пикселей мышка смещена относительно верхнего левого угла редактора
     const mouseXRelative = event.clientX - rect.left;
     const mouseYRelative = event.clientY - rect.top;
 
-    // Корректируем эти координаты, деля их на масштаб 0.75
-    // Это возвращает нам "честные" координаты внутри документа, как если бы зума не было
     const correctedX = rect.left + (mouseXRelative / 0.75);
     const correctedY = rect.top + (mouseYRelative / 0.75);
 
-    // Ищем элемент по скорректированным координатам
     const elementAtPoint = document.elementFromPoint(correctedX, correctedY);
 
-    // Проверяем, попали ли мы внутрь редактора
     if (editorDiv === elementAtPoint || editorDiv.contains(elementAtPoint)) {
       editorDiv.focus();
 
-      const slug = (this as any)._currentDragSlug || "";
-      const leftMargin = "&nbsp;".repeat(32);
+      let htmlToInsert = "";
 
-      // Формируем чистый HTML-блок
-      const htmlToInsert = `<div><br></div><div class="font-mono uppercase">${leftMargin}<span class="character-link cursor-help border-b border-dashed border-black/20 hover:border-black/60 transition-colors" data-char-slug="${slug}" contenteditable="false">${this.draggedText}</span></div><div><br></div>`;
+      if (this.dragType === "character") {
+        const slug = (this as any)._currentDragSlug || "";
+        const leftMargin = "&nbsp;".repeat(35);
+        htmlToInsert = `<div><br></div><div class="font-mono uppercase">${leftMargin}<span class="character-link cursor-help border-b border-dashed border-black/20 hover:border-black/60 transition-colors" data-char-slug="${slug}" contenteditable="false">${this.draggedText}</span></div><div><br></div>`;
+      } else {
+        // 🌟 ИСПРАВЛЕНО: Класс location-link и дата-атрибут теперь висят на самом DIV!
+        // Это дает огромную площадь для ховера, и промахнуться мышкой станет невозможно.
+        const slug = (this as any)._currentDragSlug || "";
+        htmlToInsert = `<div><br></div><div class="location-link cursor-help font-mono uppercase font-bold tracking-wide border-b border-dashed border-black/10 hover:border-black/40 transition-colors" data-loc-slug="${slug}" contenteditable="false">${this.draggedText}</div><div><br></div>`;
+      }
 
       const selection = window.getSelection();
       if (selection) {
         let range: Range | null = null;
-        
-        // Передаем браузеру идеально скорректированные координаты X и Y
         if (document.caretRangeFromPoint) {
           range = document.caretRangeFromPoint(correctedX, correctedY);
         }
@@ -111,67 +138,82 @@ export class AssetPanelManager {
           selection.removeAllRanges();
           selection.addRange(range);
           
-          // Вставляем HTML точно в место скорректированного курсора
           const template = document.createElement("template");
           template.innerHTML = htmlToInsert;
           range.insertNode(template.content);
           
-          // Сдвигаем каретку ввода в конец вставленного блока
           range.collapse(false);
         }
       }
 
-      // Триггерим input для обновления bind:value в Svelte
       editorDiv.dispatchEvent(new Event("input", { bubbles: true }));
     }
   };
 
-  // 🌟 ИСПРАВЛЕНО: Добавлен глобальный слушатель ховера для карточки предпросмотра
-    handleMouseMove(event: MouseEvent) {
+  // Слушатель ховера для подсказок (только для персонажей)
+  handleMouseMove(event: MouseEvent) {
     const target = event.target as HTMLElement;
+    if (!target) return;
+
     const charSpan = target.closest(".character-link");
+    const locSpan = target.closest(".location-link"); // Ищет теперь по DIV
     
     if (charSpan) {
       const slug = charSpan.getAttribute("data-char-slug");
-      
-      if (slug && (!this.hoveredChar || this.hoveredChar.slug !== slug || !this.showTooltip)) {
+      if (slug && (!this.hoveredChar || this.hoveredChar.slug !== slug || !this.showTooltip || this.hoveredChar.type !== 'char')) {
         invoke<any>("read_character_by_name", { name: slug })
           .then((data) => {
-            this.hoveredChar = { ...data, slug };
+            this.hoveredChar = { ...data, slug, type: 'char' };
+            this.showTooltip = true;
+          })
+          .catch((err) => console.error(err));
+      }
+      this.calculateTooltipPosition(event);
+    } else if (locSpan) {
+      // 🌟 ЛОГИКА ХОВЕРА ЛОКАЦИИ
+      const slug = locSpan.getAttribute("data-loc-slug");
+      
+      // ДОБАВЬ ЭТОТ ЛОГ ДЛЯ ПРОВЕРКИ:
+      console.log("Мышка наведена на локацию! Отправляем запрос в Rust для slug:", slug);
+
+      if (slug && (!this.hoveredChar || this.hoveredChar.slug !== slug || !this.showTooltip || this.hoveredChar.type !== 'loc')) {
+        invoke<any>("read_location_by_name", { name: slug })
+          .then((data) => {
+            console.log("Данные локации успешно получены из Rust:", data);
+            this.hoveredChar = { 
+              name: data.name || slug.replace(/_/g, " "),
+              type_scene: data.type_scene || "ИНТ.",
+              time_day: data.time_day || "ДЕНЬ",
+              lighting: data.lighting || "",
+              interior_details: data.interior_details || "",
+              description: data.description || "",
+              slug, 
+              type: 'loc' 
+            };
             this.showTooltip = true;
           })
           .catch((err) => {
-            console.error("Ошибка загрузки превью персонажа:", err);
-            this.showTooltip = false;
+            // ЭТОТ ЛОГ ПОКАЖЕТ ОШИБКУ РАСТА, ЕСЛИ ОНА ЕСТЬ
+            console.error("Rust вернул ошибку при чтении локации:", err);
           });
       }
-      
-      // 🌟 ИСПРАВЛЕНО: Динамический расчет координат для защиты от скролла
-      let targetX = event.clientX + 20;
-      let targetY = event.clientY - 240; // Базовое положение: выше курсора на высоту карточки
-
-      // Защита от улета за верхнюю границу экрана (потолок)
-      // Если карточка вылезает вверх (координата меньше 10px от края)
-      if (targetY < 10) {
-        // Перекидываем её НАДОБНО снизу под курсор, чтобы она не создавала скролл
-        targetY = event.clientY + 20; 
-      }
-
-      // Защита от улета за правую границу экрана
-      // 420px — это новая ширина нашей крупной карточки
-      if (targetX + 420 > window.innerWidth) {
-        // Сдвигаем карточку левее курсора мыши
-        targetX = event.clientX - 440;
-      }
-
-      // Записываем финальные, абсолютно безопасные координаты
-      this.tooltipPos = { x: targetX, y: targetY };
+      this.calculateTooltipPosition(event);
     } else {
       this.showTooltip = false;
       this.hoveredChar = null;
     }
   }
 
+  // Вспомогательный метод расчета безопасных координат (Bumping Protection)
+  private calculateTooltipPosition(event: MouseEvent) {
+    let targetX = event.clientX + 20;
+    let targetY = event.clientY - 240;
+
+    if (targetY < 10) targetY = event.clientY + 20; 
+    if (targetX + 420 > window.innerWidth) targetX = event.clientX - 440;
+
+    this.tooltipPos = { x: targetX, y: targetY };
+  }
 }
 
 export function createAssetPanelManager() {

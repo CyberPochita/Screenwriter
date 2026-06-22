@@ -67,7 +67,6 @@
 
       <!-- РАБОЧАЯ ОБЛАСТЬ СТРАНИЦЫ -->
       <div 
-        onmousemove={(e) => assets.handleMouseMove(e)}
         role="document"
         tabindex="-1"
         class="flex-1 flex justify-center items-start overflow-auto min-h-0 outline-none"
@@ -78,6 +77,7 @@
               bind:value={doc.currentPage.text}
               pageId={doc.currentPage.id}
               onAddPage={doc.addPage}
+              onMouseMove={(e) => assets.handleMouseMove(e)}
             />
           {/if}
 
