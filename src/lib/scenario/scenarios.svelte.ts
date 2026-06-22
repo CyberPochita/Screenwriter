@@ -11,6 +11,9 @@ export function createScenarioManager(navState: NavState, doc: any) {
   let chooseFile = $state<string | null>(null);
   let currentProject = $state("scenarios");
 
+  let toastMessage = $state<string | null>(null);
+  let isToastError = $state(false);
+
   async function enterProject() {
     if (!newName) return;
     try {
@@ -44,7 +47,9 @@ export function createScenarioManager(navState: NavState, doc: any) {
     if (!newName) return;
     try {
       // Гарантируем, что файл создается с расширением .writer
-      const fileName = newName.endsWith(".writer") ? newName : `${newName}.writer`;
+      const fileName = newName.endsWith(".writer")
+        ? newName
+        : `${newName}.writer`;
       await invoke("create_file", { name: fileName });
       newName = "";
       await get_files();
@@ -57,12 +62,12 @@ export function createScenarioManager(navState: NavState, doc: any) {
     try {
       // Вызываем бэкенд команду. Помните, что из-за макроса ключ аргумента — nameFile
       const result = await invoke<any>("entry_file", { nameFile: fileName });
-      
+
       if (result) {
         // --- ЛОГИКА: МЫ ОТКРЫЛИ ВАЛИДНЫЙ ФАЙЛ .writer ---
         // Стор сам разложит данные по полочкам и восстановит массив страниц с id
-        doc.setFromNetwork(result); 
-        
+        doc.setFromNetwork(result);
+
         // Активируем экран редактора
         chooseFile = fileName;
         navState.isVisible = !navState.isVisible;
@@ -70,8 +75,8 @@ export function createScenarioManager(navState: NavState, doc: any) {
         // --- ЛОГИКА: МЫ ЗАШЛИ В ДИРЕКТОРИЮ (ПАПКУ ПРОЕКТА) ---
         // 1. Обновляем реактивное имя текущего проекта в шапке архива
         currentProject = fileName;
-        
-        // 2. КРИТИЧЕСКИ ВАЖНО: Принудительно заставляем фронтенд 
+
+        // 2. КРИТИЧЕСКИ ВАЖНО: Принудительно заставляем фронтенд
         // перечитать список файлов из новой папки current_dir бэкенда!
         await get_files();
       }
@@ -83,30 +88,33 @@ export function createScenarioManager(navState: NavState, doc: any) {
   // ИСПРАВЛЕНО: Атомарное сохранение структурированного Word-style XML документа
   async function saveContent() {
     if (!chooseFile) {
-      console.error("Невозможно сохранить: файл не выбран");
+      showToast("Невозможно сохранить: файл не выбран", true);
       return;
     }
 
     try {
-      // 1. Получаем чистый снапшот всех страниц сценария (без внутренних ID CodeMirror)
       const payload = doc.getCompilePayload();
-
-      // 2. Отправляем структурированный объект в Tauri IPC команду write_to_file
-      // Благодаря #[tauri::command(rename_all = "camelCase")] в Rust,
-      // аргумент document передается как есть, а file идет строкой
-      const result = await invoke<string>("write_to_file", { 
-        document: payload, 
-        file: chooseFile 
+      await invoke<string>("write_to_file", {
+        document: payload,
+        file: chooseFile,
       });
 
-      console.log(`[Система]: ${result}`);
-      
-      // Сценарный маркер успешного сохранения (можно заменить на всплывающее уведомление)
-      alert("Сценарий успешно сохранен в формате .writer!");
+      // Вызываем наше красивое уведомление вместо старого alert()
+      showToast("Сценарий успешно сохранен на диск", false);
     } catch (e) {
       console.error("Критическая ошибка сохранения файла сценария:", e);
-      alert(`Ошибка при сохранении: ${e}`);
+      showToast(`Ошибка сохранения: ${e}`, true);
     }
+  }
+
+  function showToast(message: string, error = false) {
+    toastMessage = message;
+    isToastError = error;
+
+    // Автоматически скрываем уведомление через 3 секунды
+    setTimeout(() => {
+      toastMessage = null;
+    }, 3000);
   }
 
   async function deleteFile(name_file: string) {
@@ -125,11 +133,18 @@ export function createScenarioManager(navState: NavState, doc: any) {
   function closeFile() {
     chooseFile = null;
     // При закрытии сбрасываем страницы в дефолтный пустой моноширинный лист
-    doc.pages = [{ 
-      id: 1, 
-      formatting: { top_margin: 0, left_margin: 3.25, right_margin: 2.5, contact_left_margin: 0 }, 
-      text: "" 
-    }];
+    doc.pages = [
+      {
+        id: 1,
+        formatting: {
+          top_margin: 0,
+          left_margin: 3.25,
+          right_margin: 2.5,
+          contact_left_margin: 0,
+        },
+        text: "",
+      },
+    ];
     doc.currentIndex = 0;
     navState.isVisible = !navState.isVisible;
     get_files();
@@ -164,6 +179,19 @@ export function createScenarioManager(navState: NavState, doc: any) {
     get currentProject() {
       return currentProject;
     },
+    get toastMessage() {
+      return toastMessage;
+    },
+    set toastMessage(value) {
+      toastMessage = value;
+    },
+    get isToastError() {
+      return isToastError;
+    },
+    set isToastError(value) {
+      isToastError = value;
+    },
+    showToast,
     enterProject,
     exitProject,
     get_files,

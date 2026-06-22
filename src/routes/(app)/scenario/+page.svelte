@@ -6,6 +6,8 @@
   import "$lib/components/EditPanel.svelte";
   import Editor from "$lib/components/Editor.svelte";
   import EditPanel from "$lib/components/EditPanel.svelte";
+  import Toast from "$lib/components/Toast.svelte";
+  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 
   interface NavState {
     isVisible: boolean;
@@ -95,7 +97,7 @@
               </button>
 
               <button
-                onclick={() => doc.deleteCurrentPage()}
+                onclick={() => doc.deleteCurrentPage((msg) => manager.showToast(msg, true))}
                 class="w-full py-2.5 px-4 bg-white border border-black/10 text-black/70 rounded-xl font-sans text-sm font-semibold hover:bg-black hover:text-white hover:shadow-md transition-all cursor-pointer text-center"
               >
                 Удалить страницу
@@ -204,4 +206,13 @@
       {/each}
     </div>
   {/if}
+  <Toast message={manager.toastMessage} isError={manager.isToastError} />
+  <ConfirmDialog
+    show={doc.showConfirmDelete}
+    title="Удалить страницу?"
+    message="Вы действительно хотите удалить страницу {doc.currentIndex +
+      1}? Весь текст на ней будет безвозвратно стерт со всех дисков приложения."
+    onConfirm={doc.confirmDeletion}
+    onCancel={doc.cancelDeletion}
+  />
 </div>

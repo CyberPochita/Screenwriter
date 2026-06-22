@@ -19,12 +19,38 @@ export function createDocumentStore() {
   ]);
   let currentIndex = $state(0);
   let view = $state<EditorView | null>(null);
+  let showConfirmDelete = $state(false);
 
   function focusEditor() {
     queueMicrotask(() => {
       if (view) {
         view.focus();
         view.dispatch({ selection: { anchor: 0, head: 0 } });
+      }
+    });
+  }
+
+  function executePageDeletion() {
+    const targetIndex = currentIndex;
+
+    if (targetIndex === pages.length - 1) {
+      currentIndex = targetIndex - 1;
+    }
+
+    pages.splice(targetIndex, 1);
+
+    pages = pages.map((page, idx) => {
+      page.id = idx + 1;
+      return page;
+    });
+
+    queueMicrotask(() => {
+      const editorDiv = document.querySelector(
+        '[role="textbox"]',
+      ) as HTMLDivElement;
+      if (editorDiv && pages[currentIndex]) {
+        editorDiv.innerHTML = pages[currentIndex].text || "<div><br></div>";
+        focusEditor();
       }
     });
   }
@@ -50,6 +76,12 @@ export function createDocumentStore() {
     },
     set view(v) {
       view = v;
+    },
+    get showConfirmDelete() {
+      return showConfirmDelete;
+    },
+    set showConfirmDelete(v) {
+      showConfirmDelete = v;
     },
 
     // Восстановление всех страниц из XML файла .writer
@@ -179,47 +211,26 @@ export function createDocumentStore() {
       currentIndex = pages.length - 1;
       focusEditor();
     },
-    deleteCurrentPage() {
+     deleteCurrentPage(onError: (msg: string) => void) {
       if (pages.length <= 1) {
-        alert(
-          "Невозможно удалить страницу. В сценарии должен оставаться минимум один лист.",
-        );
+        // Вместо alert() вызываем функцию красивого уведомления
+        onError("Невозможно удалить страницу. В сценарии должен оставаться минимум один лист.");
         return;
       }
-
-      const confirmDelete = confirm(
-        `Вы действительно хотите удалить страницу ${currentIndex + 1}? Весь текст на ней будет безвозвратно стерт.`,
-      );
-      if (!confirmDelete) return;
-
-      const targetIndex = currentIndex;
-
-      // 1. Если удаляем самую последнюю страницу в документе — безопасно сдвигаем индекс назад
-      if (targetIndex === pages.length - 1) {
-        currentIndex = targetIndex - 1;
-      }
-
-      // 2. Вырезаем именно текущую страницу из реактивного массива Svelte 5
-      pages.splice(targetIndex, 1);
-
-      // 3. КРИТИЧЕСКИ ВАЖНО (Word-style): Пересчитываем ID всех оставшихся страниц.
-      // Это заставит Свелт изменить pageId, что мгновенно разбудит изолированный $effect в Editor.svelte
-      pages = pages.map((page, idx) => {
-        page.id = idx + 1;
-        return page;
-      });
-
-      // 4. Принудительно синхронизируем DOM-редактор с текстом новой текущей страницы
-      queueMicrotask(() => {
-        const editorDiv = document.querySelector(
-          '[role="textbox"]',
-        ) as HTMLDivElement;
-        if (editorDiv && pages[currentIndex]) {
-          // Записываем текст той страницы, которая встала на место удаленной
-          editorDiv.innerHTML = pages[currentIndex].text || "<div><br></div>";
-          focusEditor();
-        }
-      });
+      // Если страниц больше одной — открываем наше кастомное модальное окно подтверждения
+      showConfirmDelete = true;
     },
+
+    // Метод, который будет вызываться при нажатии кнопки "Удалить" в диалоге
+    confirmDeletion() {
+      showConfirmDelete = false;
+      executePageDeletion();
+    },
+
+    // Метод, который будет вызываться при отмене
+    cancelDeletion() {
+      showConfirmDelete = false;
+      focusEditor();
+    }
   };
 }
