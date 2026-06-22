@@ -8,6 +8,9 @@
   import EditPanel from "$lib/components/EditPanel.svelte";
   import Toast from "$lib/components/Toast.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+  import { createAssetPanelManager } from "$lib/scenario/assets.svelte";
+  import AssetPanel from "$lib/components/AssetPanel.svelte";
+  import CharacterTooltip from "$lib/components/CharacterTooltip.svelte"; 
 
   interface NavState {
     isVisible: boolean;
@@ -17,6 +20,7 @@
   let editorSettings = getContext<any>("editor-settings");
   const doc = createDocumentStore();
   const manager = createScenarioManager(navState, doc);
+  const assets = createAssetPanelManager();
 
   setContext("doc", doc);
 
@@ -62,7 +66,12 @@
       </header>
 
       <!-- РАБОЧАЯ ОБЛАСТЬ СТРАНИЦЫ -->
-      <div class="flex-1 flex justify-center items-start overflow-auto min-h-0">
+      <div 
+        onmousemove={(e) => assets.handleMouseMove(e)}
+        role="document"
+        tabindex="-1"
+        class="flex-1 flex justify-center items-start overflow-auto min-h-0 outline-none"
+      >
         <div class="relative my-4 rounded-sm">
           {#if doc.currentPage}
             <Editor
@@ -97,7 +106,8 @@
               </button>
 
               <button
-                onclick={() => doc.deleteCurrentPage((msg) => manager.showToast(msg, true))}
+                onclick={() =>
+                  doc.deleteCurrentPage((msg) => manager.showToast(msg, true))}
                 class="w-full py-2.5 px-4 bg-white border border-black/10 text-black/70 rounded-xl font-sans text-sm font-semibold hover:bg-black hover:text-white hover:shadow-md transition-all cursor-pointer text-center"
               >
                 Удалить страницу
@@ -124,6 +134,8 @@
         </div>
       </div>
       <EditPanel />
+      <AssetPanel {assets} />
+      <CharacterTooltip {assets} />
     </div>
   {:else}
     <!-- ЭКРАН СПИСКА (АРХИВ) -->
