@@ -1,15 +1,18 @@
 <script lang="ts">
   import { onMount, getContext, onDestroy } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import Editor from "$lib/components/Editor.svelte";
   import type { Character } from "$lib/types/character";
   import "../../../app.css";
+  import Toast from "$lib/components/Toast.svelte";
 
   // Контекст для скрытия меню навигации
   interface NavState {
     isVisible: boolean;
   }
   let navState = getContext("nav") as NavState;
+  let toastMessage = $state<string | null>(null);
+  let toastIsError = $state(false);
+  let toastTimeout: number;
 
   // Инициализация пустой анкеты
   const createEmptyChar = (): Character => ({
@@ -29,12 +32,37 @@
   let chooseFile = $state<string | null>(null); // Имя редактируемого .json файла
   let newName = $state(""); // Для быстрого создания
 
+  function showToast(msg: string, isError = false) {
+    clearTimeout(toastTimeout); // Сбрасываем предыдущий таймер
+    toastMessage = msg;
+    toastIsError = isError;
+
+    // Скрываем тост через 3 секунды
+    toastTimeout = setTimeout(() => {
+      toastMessage = null;
+    }, 3000);
+  }
+
   async function loadCharacters() {
     try {
       characters = await invoke("get_characters");
     } catch (e) {
       console.error("Failed to load characters:", e);
     }
+  }
+
+  function autoResize(node: HTMLTextAreaElement) {
+    const update = () => {
+      node.style.height = "auto";
+      node.style.height = `${node.scrollHeight}px`;
+    };
+    update();
+    node.addEventListener("input", update);
+    return {
+      destroy() {
+        node.removeEventListener("input", update);
+      },
+    };
   }
 
   async function createNewCharacter() {
@@ -65,11 +93,22 @@
   }
 
   async function saveCharacter() {
+    if (!chooseFile) {
+      console.error("Нет открытого файла для сохранения");
+      return;
+    }
     try {
-      // Передаем обновленные данные. Бэкенд перезапишет файл
-      await invoke("write_to_character", { character: char });
+      // ИСПРАВЛЕНО: Передаем имя файла И структуру данных персонажа
+      // Обрати внимание: в JS/TS пишем nameFile (camelCase), Tauri сам переведет в name_file для Rust
+      await invoke("write_to_character", { 
+        nameFile: chooseFile, 
+        character: char 
+      });
+      showToast(`Изменения в деле "${char.last_name || 'Без фамилии'}" сохранены`);
+      console.log(`Файл ${chooseFile} успешно сохранен.`);
     } catch (e) {
-      console.error(e);
+      console.error("Ошибка при сохранении персонажа:", e);
+      showToast("Не удалось сохранить файл", true);
     }
   }
 
@@ -86,7 +125,7 @@
   });
 </script>
 
-<div class="h-full p-8 font-serif text-paper">
+<div class="h-full p-5 font-serif">
   {#if chooseFile}
     <!-- ЭКРАН РЕДАКТОРА АНКЕТЫ -->
     <div class="flex h-full gap-8 animate-in fade-in duration-500">
@@ -97,23 +136,58 @@
         >
           <button
             onclick={closeCharacter}
-            class="font-mono text-xs opacity-40 hover:opacity-100 transition-opacity"
+            class="font-mono text-md opacity-40 hover:opacity-100 transition-opacity"
           >
-            ← В АРХИВ ЛИЧНОСТЕЙ
+            В АРХИВ ЛИЧНОСТЕЙ
           </button>
           <div class="text-center">
-            <h2 class="text-xl italic">
-              Дело: {char.first_name}
-              {char.last_name}
+            <h2
+              class="text-xl font-serif flex items-center justify-center gap-1.5 w-full"
+            >
+              <span class="shrink-0">ДЕЛО:</span>
+
+              {#if char.first_name || char.last_name || char.middle_name}
+                <!-- Имя -->
+                {#if char.first_name}
+                  <span
+                    class="truncate max-w-50 inline-block align-bottom"
+                    title={char.first_name}
+                  >
+                    {char.first_name}
+                  </span>
+                {/if}
+
+                <!-- Фамилия -->
+                {#if char.last_name}
+                  <span
+                    class="truncate max-w-50 inline-block align-bottom"
+                    title={char.last_name}
+                  >
+                    {char.last_name}
+                  </span>
+                {/if}
+
+                <!-- Отчество -->
+                {#if char.middle_name}
+                  <span
+                    class="truncate max-w-50 inline-block align-bottom"
+                    title={char.middle_name}
+                  >
+                    {char.middle_name}
+                  </span>
+                {/if}
+              {:else}
+                <span class="opacity-40">Новый персонаж</span>
+              {/if}
             </h2>
             <span
-              class="font-mono text-[12px] uppercase tracking-widest opacity-30"
+              class="font-mono text-[14px] uppercase tracking-widest opacity-30"
               >Редактирование параметров</span
             >
           </div>
           <button
             onclick={saveCharacter}
-            class="bg-white text-black px-4 py-1 text-xs font-mono uppercase rounded-sm hover:bg-white/80 transition-colors"
+            class="bg-black text-white px-4 py-1 text-md font-mono uppercase rounded-sm hover:bg-white hover:text-black transition-colors"
           >
             Сохранить
           </button>
@@ -123,40 +197,45 @@
           <div class="flex flex-col gap-2">
             <label
               for="first-name"
-              class="font-mono text-[13px] uppercase text-black/90">Имя</label
+              class="font-mono text-[15px] uppercase text-black/90">Имя</label
             >
-            <input
+            <textarea
               id="first-name"
               bind:value={char.first_name}
-              class="input-field"
-              placeholder="Имя"
-            />
+              use:autoResize
+              rows="1"
+              class="input-field bg-white rounded-md resize-none min-h-10 py-2.5 overflow-hidden"
+            ></textarea>
           </div>
+
           <div class="flex flex-col gap-2">
             <label
               for="last-name"
-              class="font-mono text-[13px] uppercase text-black/90"
+              class="font-mono text-[15px] uppercase text-black/90"
               >Фамилия</label
             >
-            <input
+            <textarea
               id="last-name"
               bind:value={char.last_name}
-              class="input-field"
-              placeholder="Фамилия"
-            />
+              use:autoResize
+              rows="1"
+              class="input-field bg-white rounded-md resize-none min-h-10 py-2.5 overflow-hidden"
+            ></textarea>
           </div>
+
           <div class="flex flex-col gap-2">
             <label
               for="middle-name"
-              class="font-mono text-[13px] uppercase text-black/90"
+              class="font-mono text-[15px] uppercase text-black/90"
               >Отчество</label
             >
-            <input
+            <textarea
               id="middle-name"
               bind:value={char.middle_name}
-              class="input-field"
-              placeholder="Отчество"
-            />
+              use:autoResize
+              rows="1"
+              class="input-field bg-white rounded-md resize-none min-h-10 py-2.5 overflow-hidden"
+            ></textarea>
           </div>
         </div>
 
@@ -164,29 +243,34 @@
           <div class="flex flex-col gap-2">
             <label
               for="age"
-              class="font-mono text-[13px] uppercase text-black/90"
+              class="font-mono text-[15px] uppercase text-black/90"
               >Возраст</label
             >
             <input
               id="age"
               type="number"
-              bind:value={char.age}
-              class="input-field"
-              placeholder="Лет"
+              min="0"
+              max="150"
+              value={char.age || 0}
+              oninput={(e) => (char.age = parseInt(e.currentTarget.value) || 0)}
+              class="input-field bg-white rounded-md h-10"
             />
           </div>
+
           <div class="col-span-3 flex flex-col gap-2">
             <label
               for="habits"
-              class="font-mono text-[13px] uppercase text-black/90"
+              class="font-mono text-[15px] uppercase text-black/90"
               >Привычки</label
             >
-            <input
+            <textarea
               id="habits"
               bind:value={char.habits}
-              class="input-field"
+              use:autoResize
+              rows="1"
+              class="input-field bg-white rounded-md resize-none min-h-10 py-2.5 overflow-hidden"
               placeholder="Особые приметы, жесты, мимика..."
-            />
+            ></textarea>
           </div>
         </div>
 
@@ -194,25 +278,26 @@
           <div class="flex flex-col gap-2">
             <label
               for="likes"
-              class="font-mono text-[13px] uppercase tracking-widest text-black/90"
+              class="font-mono text-[15px] uppercase tracking-widest text-black/90"
               >Любит</label
             >
             <textarea
               id="likes"
               bind:value={char.likes}
-              class="input-field h-24 resize-none"
+              class="input-field h-24 resize-none bg-white rounded-md p-3"
             ></textarea>
           </div>
+
           <div class="flex flex-col gap-2">
             <label
               for="dislikes"
-              class="font-mono text-[13px] uppercase tracking-widest text-black/90"
+              class="font-mono text-[15px] uppercase tracking-widest text-black/90"
               >Не любит</label
             >
             <textarea
               id="dislikes"
               bind:value={char.dislikes}
-              class="input-field h-24 resize-none"
+              class="input-field h-24 resize-none bg-white rounded-md p-3"
             ></textarea>
           </div>
         </div>
@@ -220,11 +305,14 @@
         <div class="flex flex-col gap-2 flex-1 min-h-75">
           <label
             for="description"
-            class="font-mono text-[13px] uppercase text-black/90"
+            class="font-mono text-[15px] uppercase text-black/90"
             >Подробная биография / Психотип</label
           >
-          <!-- Твой переиспользуемый CodeMirror компонент -->
-          <Editor bind:value={char.description} />
+          <textarea
+            id="description"
+            bind:value={char.description}
+            class="input-field flex-1 resize-none p-3 font-serif text-sm leading-relaxed h-full min-h-62.5 bg-white rounded-md"
+          ></textarea>
         </div>
       </div>
 
@@ -248,7 +336,7 @@
             {char.middle_name}
           </h3>
           <p
-            class="text-center font-mono text-[12px] opacity-40 uppercase mt-2 text-black"
+            class="text-center font-mono text-[14px] opacity-60 uppercase mt-2 text-black"
           >
             {char.age ? char.age + " лет" : "Возраст не указан"}
           </p>
@@ -259,7 +347,7 @@
             {#if char.habits}
               <p>
                 <span
-                  class="font-mono text-[12px] not-italic opacity-40 uppercase block mb-1 text-black/90"
+                  class="font-mono text-[14px] not-italic uppercase block mb-1 text-black/90"
                   >Привычка:</span
                 >
                 {char.habits}
@@ -268,7 +356,7 @@
             {#if char.likes}
               <p>
                 <span
-                  class="font-mono text-[12px] not-italic text-black/90 uppercase block mb-1"
+                  class="font-mono text-[14px] not-italic text-black/90 uppercase block mb-1"
                   >Любит:</span
                 >
                 {char.likes}
@@ -277,7 +365,7 @@
             {#if char.dislikes}
               <p>
                 <span
-                  class="font-mono text-[12px] not-italic text-black/90 uppercase block mb-1"
+                  class="font-mono text-[14px] not-italic text-black/90 uppercase block mb-1"
                   >Не любит:</span
                 >
                 {char.dislikes}
@@ -286,7 +374,7 @@
             {#if char.description}
               <p>
                 <span
-                  class="font-mono text-[12px] not-italic text-black/90 uppercase block mb-1"
+                  class="font-mono text-[14px] not-italic text-black/90 uppercase block mb-1"
                   >Подробная биография:</span
                 >
                 {char.description}
@@ -299,24 +387,19 @@
   {:else}
     <!-- ЭКРАН СПИСКА (АРХИВ ПЕРСОНАЖЕЙ) -->
     <header class="mb-10 flex justify-between items-end">
-      <div>
-        <h1 class="text-3xl italic text-writer-focus">Действующие лица</h1>
-        <p
-          class="font-mono text-[10px] opacity-40 mt-2 uppercase tracking-widest"
-        >
-          Scriptwriter_OS // Personas_Database
-        </p>
+      <div class="relative pb-5">
+        <h1 class="text-3xl italic">Персонажи</h1>
       </div>
 
       <div class="flex gap-2">
         <input
           bind:value={newName}
           placeholder="Имя нового героя..."
-          class="border-b border-black/10 bg-transparent px-2 text-xs outline-none"
+          class="border-b border-black/10 bg-transparent px-2 text-sm outline-none"
         />
         <button
           onclick={createNewCharacter}
-          class="border border-black/10 px-4 py-1 text-xs font-mono uppercase hover:bg-black hover:text-white transition-all"
+          class="border border-black/10 px-4 py-1 text-sm font-mono uppercase hover:bg-black hover:text-white transition-all"
         >
           + Создать анкету
         </button>
@@ -330,7 +413,6 @@
           class="flex items-center justify-between p-5 bg-white/40 border border-white/10 rounded-2xl hover:bg-white hover:shadow-xl hover:-translate-y-0.5 transition-all group text-left"
         >
           <div class="flex items-center gap-4 overflow-hidden">
-            <!-- Отрезаем расширение .json для красоты -->
             <span class="text-base truncate font-medium font-serif">
               {file.split(/[/\\]/).pop()?.replace(".writer", "") || file}
             </span>
@@ -349,4 +431,5 @@
       {/each}
     </div>
   {/if}
+  <Toast message={toastMessage} isError={toastIsError} />
 </div>

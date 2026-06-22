@@ -10,12 +10,6 @@
     isError?: boolean 
   } = $props();
 
-  /**
-   * Нативная функция-экшен для Svelte 5.
-   * Физически перемещает DOM-элемент в конец тега <body>,
-   * полностью изолируя его от любых overflow ограничений редактора!
-   */
-  // svelte-ignore non_reactive_update
   function portal(node: HTMLElement) {
     document.body.appendChild(node);
     return {
