@@ -28,6 +28,19 @@
     if (event.ctrlKey && event.key === "Enter") {
       event.preventDefault();
       onAddPage();
+      return;
+    }
+
+    // ИСПРАВЛЕНО: Если нажат обычный Enter, принудительно разрываем наследование стилей реплики
+    if (event.key === "Enter" && !event.ctrlKey) {
+      event.preventDefault();
+      
+      // Нативно вставляем абсолютно чистый пустой блок строки, 
+      // тем самым сбрасывая любые ограничения маргинов и пробелов для следующей строки!
+      document.execCommand("insertHTML", false, "<div><br></div>");
+      
+      // Обновляем стейт Svelte
+      if (editorRef) value = editorRef.innerHTML;
     }
   }
 
@@ -44,6 +57,8 @@
     // Сохраняем в XML-структуру HTML-код (с &nbsp;), чтобы верстка не терялась
     value = editorRef.innerHTML;
   }
+
+  
 
   onMount(() => {
     editorRef?.focus();
@@ -75,5 +90,23 @@
     color: #1e1e1e;
     font-family: 'Courier Prime', 'Courier New', Courier, monospace;
     font-size: 16px;
+  }
+
+  .editor-wrapper :global(.script-dialogue) {
+    display: block !important;
+    width: auto !important; /* Разрешаем блоку сжиматься с краев */
+    
+    /* Жесткое левое поле: 7.5cm всего - 3.25cm (базовое поле листа) = 4.25cm */
+    margin-left: calc(7.5cm - 3.25cm) !important;
+    
+    /* Жесткое правое поле: 6.25cm всего - 2.5cm (базовое поле листа) = 3.75cm */
+    margin-right: calc(6.25cm - 2.5cm) !important;
+    
+    /* Сбрасываем внутренние отступы, чтобы текст не слипался */
+    padding: 0 !important; 
+    
+    /* Гарантируем правильный перенос слов браузером */
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
   }
 </style>

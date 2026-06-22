@@ -120,6 +120,26 @@
     doc.currentPage.text = editorDiv.innerHTML;
   }
 
+  function insertCharacterDialogueLayout() {
+    if (!doc || !doc.currentPage) return;
+
+    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
+    if (!editorDiv) return;
+
+    editorDiv.focus();
+
+    // Чистый текст шаблона без единого пробела и без инлайн-стилей!
+    const placeholderDialogue = "Ты лучше бы не каркал...";
+
+    // Создаем структуру: пустая строка ДО + блок реплики + пустая строка ПОСЛЕ
+    const dialogueHtml = 
+      `<div class="script-dialogue">${placeholderDialogue}</div>` +
+      `<div><br></div>`;
+
+    document.execCommand("insertHTML", false, dialogueHtml);
+    doc.currentPage.text = editorDiv.innerHTML;
+  }
+
   function clearCurrentPageText() {
     if (!doc || !doc.currentPage) return;
     doc.currentPage.text = "";
@@ -154,6 +174,9 @@
         </button>
         <button onclick={insertCharacterNameLayout} class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-black text-white font-mono text-m transition-all hover:bg-gray-800 active:scale-[0.98] outline-none flex items-center justify-between">
           <span>Имя героя</span>
+        </button>
+         <button onclick={insertCharacterDialogueLayout} class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-black text-white font-mono text-m transition-all hover:bg-gray-800 active:scale-[0.98] outline-none flex items-center justify-between">
+          <span>Реплика героя</span>
         </button>
         <button onclick={clearCurrentPageText} class="w-full h-9 text-left px-3 rounded-lg border border-gray-200 bg-white text-gray-600 font-mono text-xs transition-all hover:bg-red-50 hover:text-red-600 hover:border-red-200 active:scale-[0.98] outline-none">
           Очистить лист
