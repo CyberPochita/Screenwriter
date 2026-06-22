@@ -9,7 +9,7 @@ use crate::models::location::Location;
 pub async fn get_locations(state: State<'_, AppState>) -> Result<Vec<String>, String> {
     let opts = state.options.lock().map_err(|_| "Ошибка AppState".to_string())?;
     // Автоматически создаем папку locations рядом с персонажами, если её нет
-    let path = opts.main_dir.join("locations");
+    let path = &opts.locations_dir; 
     if !path.exists() {
         fs::create_dir_all(&path).map_err(|e| e.to_string())?;
     }
@@ -31,7 +31,7 @@ pub async fn get_locations(state: State<'_, AppState>) -> Result<Vec<String>, St
 #[tauri::command]
 pub async fn create_location(location: Location, state: State<'_, AppState>) -> Result<String, String> {
     let opts = state.options.lock().map_err(|_| "Ошибка AppState".to_string())?;
-    let path = opts.main_dir.join("locations");
+    let path = &opts.locations_dir; 
 
     let mut base_name = if !location.name.trim().is_empty() {
         location.name.trim().to_string()
@@ -64,7 +64,8 @@ pub async fn create_location(location: Location, state: State<'_, AppState>) -> 
 #[tauri::command]
 pub async fn read_location(name_file: String, state: State<'_, AppState>) -> Result<Location, String> {
     let opts = state.options.lock().map_err(|_| "Ошибка AppState".to_string())?;
-    let file_path = opts.main_dir.join("locations").join(&name_file);
+    let path = &opts.locations_dir; 
+    let file_path = path.join(&name_file);
 
     let content = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
     let location: Location = from_xml_str(&content).map_err(|e| format!("XML Error: {}", e))?;
@@ -74,7 +75,7 @@ pub async fn read_location(name_file: String, state: State<'_, AppState>) -> Res
 #[tauri::command]
 pub async fn write_to_location(name_file: String, location: Location, state: State<'_, AppState>) -> Result<String, String> {
     let opts = state.options.lock().map_err(|_| "Ошибка AppState".to_string())?;
-    let path = opts.main_dir.join("locations");
+    let path = &opts.locations_dir; 
     let old_file_path = path.join(&name_file);
 
     let mut new_base_name = if !location.name.trim().is_empty() {
@@ -114,7 +115,7 @@ pub async fn write_to_location(name_file: String, location: Location, state: Sta
 #[tauri::command]
 pub async fn read_location_by_name(name: String, state: tauri::State<'_, AppState>) -> Result<Location, String> {
     let opts = state.options.lock().map_err(|_| "Ошибка доступа к AppState".to_string())?;
-    let path = opts.main_dir.join("locations");
+    let path = &opts.locations_dir; 
 
     if !path.exists() {
         return Err("Папка локаций не существует".to_string());
