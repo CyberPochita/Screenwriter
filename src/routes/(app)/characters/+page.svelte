@@ -121,8 +121,9 @@
 
         <div class="grid grid-cols-3 gap-4">
           <div class="flex flex-col gap-2">
-            <label for="first-name" class="font-mono text-[13px] uppercase text-black/90"
-              >Имя</label
+            <label
+              for="first-name"
+              class="font-mono text-[13px] uppercase text-black/90">Имя</label
             >
             <input
               id="first-name"
@@ -132,7 +133,9 @@
             />
           </div>
           <div class="flex flex-col gap-2">
-            <label for="last-name" class="font-mono text-[13px] uppercase text-black/90"
+            <label
+              for="last-name"
+              class="font-mono text-[13px] uppercase text-black/90"
               >Фамилия</label
             >
             <input
@@ -143,7 +146,9 @@
             />
           </div>
           <div class="flex flex-col gap-2">
-            <label for="middle-name" class="font-mono text-[13px] uppercase text-black/90"
+            <label
+              for="middle-name"
+              class="font-mono text-[13px] uppercase text-black/90"
               >Отчество</label
             >
             <input
@@ -157,7 +162,9 @@
 
         <div class="grid grid-cols-4 gap-4">
           <div class="flex flex-col gap-2">
-            <label for="age" class="font-mono text-[13px] uppercase text-black/90"
+            <label
+              for="age"
+              class="font-mono text-[13px] uppercase text-black/90"
               >Возраст</label
             >
             <input
@@ -169,7 +176,9 @@
             />
           </div>
           <div class="col-span-3 flex flex-col gap-2">
-            <label for="habits" class="font-mono text-[13px] uppercase text-black/90"
+            <label
+              for="habits"
+              class="font-mono text-[13px] uppercase text-black/90"
               >Привычки</label
             >
             <input
@@ -231,7 +240,9 @@
           >
             👤
           </div>
-          <h3 class="text-center text-xl italic wrap-break-word leading-tight text-black/90">
+          <h3
+            class="text-center text-xl italic wrap-break-word leading-tight text-black/90"
+          >
             {char.first_name || "Имя"} <br />
             {char.last_name} <br />
             {char.middle_name}
@@ -311,7 +322,7 @@
         </button>
       </div>
     </header>
-    
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {#each characters as file}
         <button
@@ -320,9 +331,9 @@
         >
           <div class="flex items-center gap-4 overflow-hidden">
             <!-- Отрезаем расширение .json для красоты -->
-            <span class="text-lg truncate font-medium"
-              >{file.replace(".json", "")}</span
-            >
+            <span class="text-base truncate font-medium font-serif">
+              {file.split(/[/\\]/).pop()?.replace(".writer", "") || file}
+            </span>
           </div>
           <span
             class="font-mono text-[10px] opacity-0 group-hover:opacity-60 tracking-tighter shrink-0"
