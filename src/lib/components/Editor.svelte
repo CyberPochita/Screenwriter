@@ -14,8 +14,10 @@
 
   // СИНХРОНИЗАЦИЯ СТРАНИЦ: Срабатывает СТРОГО при перелистывании (смене pageId)
   $effect(() => {
-    const _trigger = pageId; // Подписываемся на смену ID страницы
-    
+    // Подписываемся на смену ID страницы (перелистывание) и на явное изменение текста извне (загрузка)
+    const _pageTrigger = pageId; 
+    const _textTrigger = value;
+
     if (editorRef && editorRef.innerHTML !== value) {
       // Загружаем HTML-разметку (сохраняя &nbsp; и теги строк из XML)
       editorRef.innerHTML = value || "<div><br></div>";

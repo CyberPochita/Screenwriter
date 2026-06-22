@@ -43,7 +43,9 @@ export function createScenarioManager(navState: NavState, doc: any) {
   async function createScenario() {
     if (!newName) return;
     try {
-      await invoke("create_file", { name: newName });
+      // Гарантируем, что файл создается с расширением .writer
+      const fileName = newName.endsWith(".writer") ? newName : `${newName}.writer`;
+      await invoke("create_file", { name: fileName });
       newName = "";
       await get_files();
     } catch (e) {
@@ -52,27 +54,51 @@ export function createScenarioManager(navState: NavState, doc: any) {
   }
 
   async function loadContent(fileName: string) {
-  try {
-    // Rust возвращает структуру ScenarioDocument в формате JSON-объекта
-    const result = await invoke<any>("entry_file", { nameFile: fileName });
-    
-    if (result) {
-      // КРИТИЧЕСКИ ВАЖНО: Вызываем метод стора, который мы писали ранее.
-      // Он сам разложит title_page по полочкам, а массив страниц преобразует в [{ id: 1, text: "..." }]
-      doc.setFromNetwork(result); 
+    try {
+      // Rust возвращает структуру ScenarioDocument в формате JSON-объекта
+      const result = await invoke<any>("entry_file", { nameFile: fileName });
       
-      // Активируем экран редактора
-      chooseFile = fileName;
-      navState.isVisible = !navState.isVisible;
+      if (result) {
+        // Вызываем метод стора, который мы писали ранее.
+        // Он сам разложит данные по полочкам и восстановит массив страниц с id
+        doc.setFromNetwork(result); 
+        
+        // Активируем экран редактора
+        chooseFile = fileName;
+        navState.isVisible = !navState.isVisible;
+      }
+    } catch (err) {
+      console.error("Ошибка в загрузке контента: ", err);
     }
-  } catch (err) {
-    console.error("Ошибка в загрузке контента: ", err);
   }
-}
 
+  // ИСПРАВЛЕНО: Атомарное сохранение структурированного Word-style XML документа
   async function saveContent() {
-    const fullText = doc.pages.map((p: any) => p.text).join("\n");
-    await invoke("write_to_file", { msg: fullText, file: chooseFile });
+    if (!chooseFile) {
+      console.error("Невозможно сохранить: файл не выбран");
+      return;
+    }
+
+    try {
+      // 1. Получаем чистый снапшот всех страниц сценария (без внутренних ID CodeMirror)
+      const payload = doc.getCompilePayload();
+
+      // 2. Отправляем структурированный объект в Tauri IPC команду write_to_file
+      // Благодаря #[tauri::command(rename_all = "camelCase")] в Rust,
+      // аргумент document передается как есть, а file идет строкой
+      const result = await invoke<string>("write_to_file", { 
+        document: payload, 
+        file: chooseFile 
+      });
+
+      console.log(`[Система]: ${result}`);
+      
+      // Сценарный маркер успешного сохранения (можно заменить на всплывающее уведомление)
+      alert("Сценарий успешно сохранен в формате .writer!");
+    } catch (e) {
+      console.error("Критическая ошибка сохранения файла сценария:", e);
+      alert(`Ошибка при сохранении: ${e}`);
+    }
   }
 
   async function deleteFile(name_file: string) {
@@ -90,7 +116,12 @@ export function createScenarioManager(navState: NavState, doc: any) {
 
   function closeFile() {
     chooseFile = null;
-    doc.pages = [{ id: 1, text: "" }];
+    // При закрытии сбрасываем страницы в дефолтный пустой моноширинный лист
+    doc.pages = [{ 
+      id: 1, 
+      formatting: { top_margin: 0, left_margin: 3.25, right_margin: 2.5, contact_left_margin: 0 }, 
+      text: "" 
+    }];
     doc.currentIndex = 0;
     navState.isVisible = !navState.isVisible;
     get_files();

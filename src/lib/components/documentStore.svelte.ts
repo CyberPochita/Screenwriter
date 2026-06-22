@@ -35,28 +35,42 @@ export function createDocumentStore() {
     set view(v) { view = v; },
 
     // Восстановление всех страниц из XML файла .writer
-    setFromNetwork(loadedDoc: IScenarioDocument) {
+    setFromNetwork(loadedDoc: { pages: any[] }) {
       if (loadedDoc.pages && loadedDoc.pages.length > 0) {
         pages = loadedDoc.pages.map((p, index) => ({
           id: index + 1,
-          formatting: p.formatting ?? { ...DEFAULT_SCRIPT_FORMATTING },
-          text: p.text ?? ""
+          formatting: p.formatting ?? { top_margin: 0, left_margin: 3.25, right_margin: 2.5, contact_left_margin: 0 },
+          // Читаем из ключа "$value", который присылает Rust Serde
+          text: p["$value"] ?? p.text ?? ""
         }));
       } else {
-        pages = [{ id: 1, formatting: { ...DEFAULT_SCRIPT_FORMATTING }, text: "" }];
+        pages = [{ id: 1, formatting: { top_margin: 0, left_margin: 3.25, right_margin: 2.5, contact_left_margin: 0 }, text: "" }];
       }
+      
       currentIndex = 0;
-      focusEditor();
+
+      // КРИТИЧЕСКИ ВАЖНО (Word-style): Принудительно обновляем текст в DOM, 
+      // так как при загрузке файла pageId первой страницы не меняется (остается равным 1),
+      // и стандартный эффект в Editor.svelte не срабатывает автоматически.
+      queueMicrotask(() => {
+        const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
+        if (editorDiv && pages[0]) {
+          editorDiv.innerHTML = pages[0].text;
+          editorDiv.focus();
+        }
+      });
     },
 
     // Сборка для записи XML-документа на бэкенд
     getCompilePayload() {
+      // ИСПРАВЛЕНО: Мапим поле 'text' в ключ '"$value"', который жестко ожидает Rust Serde
+      const cleanPages = pages.map(p => ({
+        formatting: $state.snapshot(p.formatting),
+        "$value": p.text || "" // Переименовываем ключ для бэкенда quick-xml
+      }));
+
       return {
-        // Очищаем от ID перед отправкой в Rust
-        pages: pages.map(p => ({
-          formatting: $state.snapshot(p.formatting),
-          text: p.text
-        }))
+        pages: cleanPages
       };
     },
 
