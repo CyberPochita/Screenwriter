@@ -109,4 +109,19 @@
     white-space: pre-wrap !important;
     word-break: break-word !important;
   }
+
+  .editor-wrapper :global(.script-parenthetical) {
+    display: block !important;
+    width: auto !important;
+    
+    /* Вычисляем левое поле: 9.25cm всего - 3.25cm (базовое поле листа) = 6.0cm */
+    margin-left: calc(9.25cm - 3.25cm) !important;
+    
+    /* Вычисляем правое поле: 6.25cm всего - 2.5cm (базовое поле листа) = 3.75cm */
+    margin-right: calc(6.25cm - 2.5cm) !important;
+    
+    padding: 0 !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+  }
 </style>
