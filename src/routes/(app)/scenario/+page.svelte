@@ -60,40 +60,40 @@
       </header>
 
       <!-- РАБОЧАЯ ОБЛАСТЬ СТРАНИЦЫ -->
-      <div
-        class="flex-1 flex justify-center items-start overflow-auto min-h-0"
-      >
+      <div class="flex-1 flex justify-center items-start overflow-auto min-h-0">
         <div class="relative my-4 rounded-sm">
-          <!-- Лист А4 с динамическими полями из XML-структуры текущей страницы -->
           {#if doc.currentPage}
-              <!-- Текстовое поле ввода CodeMirror -->
-              <Editor
-                bind:value={doc.currentPage.text}
-                pageId={doc.currentPage.id}
-                onAddPage={doc.addPage}
-              />
+            <Editor
+              bind:value={doc.currentPage.text}
+              pageId={doc.currentPage.id}
+              onAddPage={doc.addPage}
+            />
           {/if}
 
           <!-- БЛОК НАВИГАЦИИ СТРАНИЦ (Стрелочки справа от листа) -->
           <div
-            class="absolute top-4 left-[calc(100%+24px)] flex flex-col gap-3 w-40 select-none"
+            class="absolute top-4 left-[calc(100%+24px)] flex flex-col gap-1 text-black/70 font-mono select-none w-55"
           >
-            <div class="flex flex-col gap-1 text-black/70 font-mono">
-              <p class="text-xs opacity-50 uppercase tracking-wider">
-                Страницы
-              </p>
-              <p class="text-xl font-bold">
-                {doc.currentIndex + 1}/{doc.pages.length}
-              </p>
-            </div>
+            <p class="text-m uppercase tracking-wider">
+              Количество страниц: {doc.pages.length}
+            </p>
+            <!-- TODO: Настроить счетчики -->
+            <p class="text-m uppercase tracking-wider">Количество букв: 0</p>
+            <p class="text-m uppercase tracking-wider">Количество слов: 0</p>
+          </div>
 
-            <div class="flex flex-col gap-3 mt-4">
+          <div
+            class="absolute bottom-0 left-[calc(100%+24px)] flex flex-col gap-3 w-40 select-none"
+          >
+            <div class="flex flex-col gap-3">
+              <!-- Кнопка создания новой страницы -->
               <button
                 onclick={() => doc.addPage()}
                 class="w-full py-2.5 px-4 bg-white border border-black/10 text-black/70 rounded-xl font-sans text-sm font-semibold hover:bg-black hover:text-white hover:shadow-md transition-all cursor-pointer text-center"
               >
                 Создать страницу
               </button>
+
               <button
                 onclick={() => doc.deleteCurrentPage()}
                 class="w-full py-2.5 px-4 bg-white border border-black/10 text-black/70 rounded-xl font-sans text-sm font-semibold hover:bg-black hover:text-white hover:shadow-md transition-all cursor-pointer text-center"
@@ -121,8 +121,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Подключаем нашу обновленную боковую панель макросов -->
       <EditPanel />
     </div>
   {:else}
@@ -179,7 +177,6 @@
         <div
           class="group flex items-stretch gap-0 hover:gap-3 w-full transition-all duration-300"
         >
-          <!-- Основная кнопка -->
           <button
             onclick={() => manager.loadContent(file.file_name)}
             class="flex-1 flex items-center justify-between p-5 bg-white/40 border border-white/10 rounded-2xl hover:bg-white hover:shadow-xl hover:-translate-y-0.5 transition-all text-left"
