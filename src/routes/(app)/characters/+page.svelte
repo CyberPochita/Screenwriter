@@ -94,20 +94,24 @@
 
   async function saveCharacter() {
     if (!chooseFile) {
-      console.error("Нет открытого файла для сохранения");
+      showToast("Нет открытого файла для сохранения", true);
       return;
     }
     try {
-      // ИСПРАВЛЕНО: Передаем имя файла И структуру данных персонажа
-      // Обрати внимание: в JS/TS пишем nameFile (camelCase), Tauri сам переведет в name_file для Rust
-      await invoke("write_to_character", { 
-        nameFile: chooseFile, 
-        character: char 
+      // ИСПРАВЛЕНО: Ловим строку с актуальным именем файла от Rust
+      const updatedFileName = await invoke<string>("write_to_character", {
+        nameFile: chooseFile,
+        character: char,
       });
-      showToast(`Изменения в деле "${char.last_name || 'Без фамилии'}" сохранены`);
-      console.log(`Файл ${chooseFile} успешно сохранен.`);
+
+      // Обновляем состояние фронтенда новым именем файла
+      chooseFile = updatedFileName;
+
+      showToast(
+        `Изменения в деле "${char.last_name || "Без фамилии"}" сохранены`,
+      );
     } catch (e) {
-      console.error("Ошибка при сохранении персонажа:", e);
+      console.error(e);
       showToast("Не удалось сохранить файл", true);
     }
   }
@@ -147,16 +151,6 @@
               <span class="shrink-0">ДЕЛО:</span>
 
               {#if char.first_name || char.last_name || char.middle_name}
-                <!-- Имя -->
-                {#if char.first_name}
-                  <span
-                    class="truncate max-w-50 inline-block align-bottom"
-                    title={char.first_name}
-                  >
-                    {char.first_name}
-                  </span>
-                {/if}
-
                 <!-- Фамилия -->
                 {#if char.last_name}
                   <span
@@ -164,6 +158,16 @@
                     title={char.last_name}
                   >
                     {char.last_name}
+                  </span>
+                {/if}
+
+                <!-- Имя -->
+                {#if char.first_name}
+                  <span
+                    class="truncate max-w-50 inline-block align-bottom"
+                    title={char.first_name}
+                  >
+                    {char.first_name}
                   </span>
                 {/if}
 
@@ -394,7 +398,7 @@
       <div class="flex gap-2">
         <input
           bind:value={newName}
-          placeholder="Имя нового героя..."
+          placeholder="Фамилия нового героя..."
           class="border-b border-black/10 bg-transparent px-2 text-sm outline-none"
         />
         <button
@@ -406,15 +410,19 @@
       </div>
     </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {#each characters as file}
         <button
           onclick={() => openCharacter(file)}
           class="flex items-center justify-between p-5 bg-white/40 border border-white/10 rounded-2xl hover:bg-white hover:shadow-xl hover:-translate-y-0.5 transition-all group text-left"
         >
           <div class="flex items-center gap-4 overflow-hidden">
-            <span class="text-base truncate font-medium font-serif">
-              {file.split(/[/\\]/).pop()?.replace(".writer", "") || file}
+            <span class="text-xl truncate font-medium font-serif capitalize">
+              {file
+                .split(/[/\\]/)
+                .pop()
+                ?.replace(".writer", "")
+                .replace(/_/g, " ") || file}
             </span>
           </div>
           <span
