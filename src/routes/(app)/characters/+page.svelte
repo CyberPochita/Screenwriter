@@ -68,16 +68,16 @@
   async function createNewCharacter() {
     if (!newName) return;
     try {
-      // Инициализируем файл пустой структурой с именем
       let tempChar = createEmptyChar();
       tempChar.last_name = newName;
-      console.log(tempChar.last_name);
       const fileName = `${newName}.json`;
       await invoke("create_character", { character: tempChar }); // Передаем структуру, Rust сам сделает файл
       newName = "";
+      showToast(`Создана анкета: ${tempChar.first_name} ${tempChar.last_name}`);
       await loadCharacters();
     } catch (e) {
       console.error(e);
+      showToast("Ошибка при создании анкеты", true);
     }
   }
 
@@ -86,7 +86,7 @@
       console.log(fileName);
       char = await invoke("read_character", { nameFile: fileName });
       chooseFile = fileName;
-      navState.isVisible = false; // Прячем навигацию
+      navState.isVisible = false;
     } catch (e) {
       console.error(e);
     }
@@ -121,6 +121,18 @@
     char = createEmptyChar();
     navState.isVisible = true; // Возвращаем навигацию
     loadCharacters();
+  }
+
+  async function deleteCharacter(fileName: string) {
+    try {
+      const res = await invoke<string>("delete_character_file", { nameFile: fileName });
+      const cleanName = fileName.replace(".writer", "").replace(/_/g, " ");
+      showToast(`Анкета "${cleanName}" удалена из архива`);
+      await loadCharacters();
+    } catch (e) {
+      console.error(e);
+      showToast("Не удалось удалить персонажа", true);
+    }
   }
 
   onMount(loadCharacters);
@@ -410,9 +422,7 @@
       </div>
     </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-      {#each characters as file}
-        <button
+    <!-- <button
           onclick={() => openCharacter(file)}
           class="flex items-center justify-between p-5 bg-white/40 border border-white/10 rounded-2xl hover:bg-white hover:shadow-xl hover:-translate-y-0.5 transition-all group text-left"
         >
@@ -429,7 +439,34 @@
             class="font-mono text-[10px] opacity-0 group-hover:opacity-60 tracking-tighter shrink-0"
             >ДОСЬЕ →</span
           >
-        </button>
+        </button> -->
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      {#each characters as file}
+        <div class="group flex items-stretch gap-0 hover:gap-3 w-full transition-all duration-300">
+          <button
+            onclick={() => openCharacter(file)}
+            class="flex-1 flex items-center justify-between p-5 bg-white/40 border border-white/10 rounded-2xl hover:bg-white hover:shadow-xl hover:-translate-y-0.5 transition-all text-left"
+          >
+            <div class="flex items-center gap-4 overflow-hidden pr-2">
+              <span class="text-xl truncate font-medium font-serif capitalize">
+                {file.split(/[/\\]/).pop()?.replace(".writer", "").replace(/_/g, " ") || file}
+              </span>
+            </div>
+            <span class="font-mono text-[12px] opacity-0 group-hover:opacity-60 tracking-wider transition-opacity shrink-0 uppercase">
+              Досье →
+            </span>
+          </button>
+          <button
+            onclick={() => deleteCharacter(file)}
+            class="flex items-center justify-center bg-white/40 border border-white/10 rounded-2xl hover:bg-red-500 hover:text-white text-left
+               w-0 opacity-0 pointer-events-none overflow-hidden hover:shadow-xl hover:-translate-y-0.5
+               group-hover:w-14 group-hover:opacity-100 group-hover:pointer-events-auto
+               transition-all duration-300 ease-out"
+          >
+            <span class="font-mono text-[12px] tracking-tighter font-bold"> X </span>
+          </button>
+        </div>
       {:else}
         <div
           class="col-span-full py-20 text-center border-2 border-dashed border-white/5 rounded-2xl"

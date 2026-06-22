@@ -18,10 +18,12 @@ export function createScenarioManager(navState: NavState, doc: any) {
     if (!newName) return;
     try {
       await invoke("enter_project", { projectName: newName });
+      currentProject = newName;
       newName = "";
       await get_files();
     } catch (e) {
       console.error("Failed to enter project:", e);
+      showToast("Не удалось взаимодействовать с проектом", true);
     }
   }
 
@@ -53,8 +55,10 @@ export function createScenarioManager(navState: NavState, doc: any) {
       await invoke("create_file", { name: fileName });
       newName = "";
       await get_files();
+      showToast(`Создан сценарий: ${newName}.writer`);
     } catch (e) {
       console.error("Failed to create scenarios:", e);
+      showToast("Не удалось создать сценарий", true);
     }
   }
 
@@ -125,8 +129,10 @@ export function createScenarioManager(navState: NavState, doc: any) {
       } else {
         await get_files();
       }
+      showToast(`Объект "${name_file}" успешно удален`);
     } catch (e) {
       console.error("Failed to delete file:", e);
+      showToast(`Ошибка при удалении "${name_file}"`, true);
     }
   }
 

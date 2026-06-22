@@ -8,8 +8,7 @@
     value = $bindable(""), 
     pageId = 1, 
     onAddPage = () => {},
-    // Задаем строгий тип вместо Function
-    onMouseMove = (() => {}) as MouseEventHandler<HTMLDivElement>
+    onMouseMove = () => {} 
   }: {
     value: string;
     pageId: number;

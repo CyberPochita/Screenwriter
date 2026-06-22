@@ -155,3 +155,18 @@ pub async fn read_location_by_name(name: String, state: tauri::State<'_, AppStat
 
     Ok(location)
 }
+
+#[tauri::command]
+pub async fn delete_location_file(name_file: String, state: tauri::State<'_, AppState>) -> Result<String, String> {
+    let opts = state.options.lock().map_err(|_| "Ошибка доступа к AppState".to_string())?;
+    
+    let safe_name = std::path::Path::new(&name_file).file_name().ok_or("Некорректное имя файла")?;
+    let file_path = opts.locations_dir.join(safe_name);
+
+    if file_path.exists() {
+        fs::remove_file(&file_path).map_err(|e| format!("Не удалось удалить файл локации: {}", e))?;
+        Ok(format!("Файл {} успешно удален", name_file))
+    } else {
+        Err("Файл локации не найден".to_string())
+    }
+}

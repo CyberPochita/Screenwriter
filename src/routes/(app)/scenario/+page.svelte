@@ -200,7 +200,7 @@
               <span class="text-xl text-writer-dark/80">Проект</span>
             {/if}
             <span
-              class="font-mono text-[10px] opacity-0 group-hover:opacity-40 tracking-tighter transition-opacity duration-300"
+              class="font-mono text-[12px] opacity-0 group-hover:opacity-40 tracking-tighter transition-opacity duration-300"
             >
               ЧИТАТЬ →
             </span>

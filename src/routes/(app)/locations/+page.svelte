@@ -90,6 +90,17 @@
     loadLocations();
   }
 
+  async function deleteLocation(fileName: string) {
+    try {
+      const res = await invoke<string>("delete_location_file", { nameFile: fileName });
+      showToast(res);
+      await loadLocations(); // Перезагружаем список
+    } catch (e) {
+      console.error(e);
+      showToast("Не удалось удалить локацию", true);
+    }
+  }
+
   onMount(loadLocations);
   onDestroy(() => {
     if (navState) navState.isVisible = true;
@@ -265,30 +276,28 @@
     <!-- СЕТКА КАРТОЧЕК ДОСТУПНЫХ ЛОКАЦИЙ -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {#each locations as file}
-        <div
-          class="group flex items-stretch gap-0 hover:gap-3 w-full transition-all duration-300"
-        >
+        <div class="group flex items-stretch gap-0 hover:gap-3 w-full transition-all duration-300">
           <button
             onclick={() => openLocation(file)}
             class="flex-1 flex items-center justify-between p-5 bg-white/40 border border-white/10 rounded-2xl hover:bg-white hover:shadow-xl hover:-translate-y-0.5 transition-all text-left"
           >
-            <span class="text-xl truncate font-medium font-serif capitalize">
-              {file.split(/[/\\]/).pop()?.replace(".writer", "").replace(/_/g, " ") || file}
-            </span>
-            <span
-              class="font-mono text-[14px] opacity-0 group-hover:opacity-40 tracking-tighter transition-opacity duration-300"
-            >
+            <div class="flex items-center gap-4 overflow-hidden pr-2">
+              <span class="text-xl truncate font-medium font-serif capitalize">
+                {file.split(/[/\\]/).pop()?.replace(".writer", "").replace(/_/g, " ") || file}
+              </span>
+            </div>
+            <span class="font-mono text-[12px] opacity-0 group-hover:opacity-60 tracking-wider transition-opacity shrink-0 uppercase">
               Объект →
             </span>
           </button>
           <button
-            onclick={() => null}
+            onclick={() => deleteLocation(file)}
             class="flex items-center justify-center bg-white/40 border border-white/10 rounded-2xl hover:bg-red-500 hover:text-white text-left
                w-0 opacity-0 pointer-events-none overflow-hidden hover:shadow-xl hover:-translate-y-0.5
                group-hover:w-14 group-hover:opacity-100 group-hover:pointer-events-auto
                transition-all duration-300 ease-out"
           >
-            <span class="font-mono text-[12px] tracking-tighter"> X </span>
+            <span class="font-mono text-[12px] tracking-tighter font-bold"> X </span>
           </button>
         </div>
       {:else}

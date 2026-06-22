@@ -1,25 +1,21 @@
 import { invoke } from "@tauri-apps/api/core";
 
 export class AssetPanelManager {
-  // Реактивные состояния папок
   activeFolder = $state<"none" | "characters" | "locations">("none");
   characterList = $state<string[]>([]);
-  locationList = $state<string[]>([]); // 🌟 ДОБАВЛЕНО: Список локаций
+  locationList = $state<string[]>([]);
 
-  // Состояния виртуального Drag-and-Drop
   isDragging = $state(false);
   draggedText = $state("");
   dragPos = $state({ x: 0, y: 0 });
-  dragType = $state<"character" | "location">("character"); // 🌟 ДОБАВЛЕНО: Тип перетаскиваемого элемента
+  dragType = $state<"character" | "location">("character");
 
-  // Состояния для всплывающего превью (Tooltip) персонажей
   hoveredChar = $state<any>(null);
   tooltipPos = $state({ x: 0, y: 0 });
   showTooltip = $state(false);
 
   constructor() {}
 
-  // Переключение состояния папок шторки
   toggleFolder(folder: "characters" | "locations") {
     if (this.activeFolder === folder) {
       this.activeFolder = "none";
@@ -28,12 +24,11 @@ export class AssetPanelManager {
       if (folder === "characters") {
         this.loadCharacters();
       } else if (folder === "locations") {
-        this.loadLocations(); // 🌟 ДОБАВЛЕНО: Загрузка локаций при клике
+        this.loadLocations();
       }
     }
   }
 
-  // Загрузка персонажей
   async loadCharacters() {
     try {
       this.characterList = await invoke<string[]>("get_characters");
@@ -42,7 +37,6 @@ export class AssetPanelManager {
     }
   }
 
-  // 🌟 ДОБАВЛЕНО: Загрузка локаций из бэкенда на Rust
   async loadLocations() {
     try {
       this.locationList = await invoke<string[]>("get_locations");
@@ -51,11 +45,14 @@ export class AssetPanelManager {
     }
   }
 
-  // 🌟 МОДЕРНИЗИРОВАНО: Универсальный старт виртуального переноса
-  async startVirtualDrag(event: MouseEvent, fileName: string, type: "character" | "location") {
+  async startVirtualDrag(
+    event: MouseEvent,
+    fileName: string,
+    type: "character" | "location",
+  ) {
     event.preventDefault();
     this.dragType = type;
-    
+
     const fileSlug = fileName.replace(".writer", "");
 
     if (type === "character") {
@@ -64,24 +61,29 @@ export class AssetPanelManager {
       (this as any)._currentDragSlug = fileSlug;
       this.initDragSequence(event);
     } else {
-      // 🌟 ИСПРАВЛЕНО: Записываем slug локации в память менеджера
       (this as any)._currentDragSlug = fileSlug;
 
       try {
-        const locData = await invoke<any>("read_location", { nameFile: fileName });
+        const locData = await invoke<any>("read_location", {
+          nameFile: fileName,
+        });
         const typeScene = (locData.type_scene || "ИНТ.").toUpperCase();
-        const locName = (locData.name || fileSlug.replace(/_/g, " ")).toUpperCase();
+        const locName = (
+          locData.name || fileSlug.replace(/_/g, " ")
+        ).toUpperCase();
         const timeDay = (locData.time_day || "ДЕНЬ").toUpperCase();
-        
+
         this.draggedText = `${typeScene} ${locName} - ${timeDay}`;
         this.initDragSequence(event);
       } catch (e) {
-        console.error("Не удалось прочитать параметры локации для переноса:", e);
+        console.error(
+          "Не удалось прочитать параметры локации для переноса:",
+          e,
+        );
       }
     }
   }
 
-  // Вспомогательный метод инициализации движения
   private initDragSequence(event: MouseEvent) {
     this.isDragging = true;
     this.dragPos = { x: event.clientX, y: event.clientY };
@@ -93,21 +95,22 @@ export class AssetPanelManager {
     this.dragPos = { x: event.clientX, y: event.clientY };
   };
 
-  // 🌟 МОДЕРНИЗИРОВАНО: Умный сброс снайперской вставки с учетом типа ассета
   dropVirtualDrag = (event: MouseEvent) => {
     window.removeEventListener("mousemove", this.moveVirtualDrag);
     window.removeEventListener("mouseup", this.dropVirtualDrag);
     this.isDragging = false;
 
-    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
+    const editorDiv = document.querySelector(
+      '[role="textbox"]',
+    ) as HTMLDivElement;
     if (!editorDiv) return;
 
     const rect = editorDiv.getBoundingClientRect();
     const mouseXRelative = event.clientX - rect.left;
     const mouseYRelative = event.clientY - rect.top;
 
-    const correctedX = rect.left + (mouseXRelative / 0.75);
-    const correctedY = rect.top + (mouseYRelative / 0.75);
+    const correctedX = rect.left + mouseXRelative / 0.75;
+    const correctedY = rect.top + mouseYRelative / 0.75;
 
     const elementAtPoint = document.elementFromPoint(correctedX, correctedY);
 
@@ -121,8 +124,6 @@ export class AssetPanelManager {
         const leftMargin = "&nbsp;".repeat(35);
         htmlToInsert = `<div><br></div><div class="font-mono uppercase">${leftMargin}<span class="character-link cursor-help border-b border-dashed border-black/20 hover:border-black/60 transition-colors" data-char-slug="${slug}" contenteditable="false">${this.draggedText}</span></div><div><br></div>`;
       } else {
-        // 🌟 ИСПРАВЛЕНО: Класс location-link и дата-атрибут теперь висят на самом DIV!
-        // Это дает огромную площадь для ховера, и промахнуться мышкой станет невозможно.
         const slug = (this as any)._currentDragSlug || "";
         htmlToInsert = `<div><br></div><div class="location-link cursor-help font-mono uppercase font-bold tracking-wide border-b border-dashed border-black/10 hover:border-black/40 transition-colors" data-loc-slug="${slug}" contenteditable="false">${this.draggedText}</div><div><br></div>`;
       }
@@ -137,11 +138,11 @@ export class AssetPanelManager {
         if (range) {
           selection.removeAllRanges();
           selection.addRange(range);
-          
+
           const template = document.createElement("template");
           template.innerHTML = htmlToInsert;
           range.insertNode(template.content);
-          
+
           range.collapse(false);
         }
       }
@@ -150,52 +151,54 @@ export class AssetPanelManager {
     }
   };
 
-  // Слушатель ховера для подсказок (только для персонажей)
   handleMouseMove(event: MouseEvent) {
     const target = event.target as HTMLElement;
     if (!target) return;
 
     const charSpan = target.closest(".character-link");
-    const locSpan = target.closest(".location-link"); // Ищет теперь по DIV
-    
+    const locSpan = target.closest(".location-link");
+
     if (charSpan) {
       const slug = charSpan.getAttribute("data-char-slug");
-      if (slug && (!this.hoveredChar || this.hoveredChar.slug !== slug || !this.showTooltip || this.hoveredChar.type !== 'char')) {
+      if (
+        slug &&
+        (!this.hoveredChar ||
+          this.hoveredChar.slug !== slug ||
+          !this.showTooltip ||
+          this.hoveredChar.type !== "char")
+      ) {
         invoke<any>("read_character_by_name", { name: slug })
           .then((data) => {
-            this.hoveredChar = { ...data, slug, type: 'char' };
+            this.hoveredChar = { ...data, slug, type: "char" };
             this.showTooltip = true;
           })
           .catch((err) => console.error(err));
       }
       this.calculateTooltipPosition(event);
     } else if (locSpan) {
-      // 🌟 ЛОГИКА ХОВЕРА ЛОКАЦИИ
       const slug = locSpan.getAttribute("data-loc-slug");
-      
-      // ДОБАВЬ ЭТОТ ЛОГ ДЛЯ ПРОВЕРКИ:
-      console.log("Мышка наведена на локацию! Отправляем запрос в Rust для slug:", slug);
-
-      if (slug && (!this.hoveredChar || this.hoveredChar.slug !== slug || !this.showTooltip || this.hoveredChar.type !== 'loc')) {
+      if (
+        slug &&
+        (!this.hoveredChar ||
+          this.hoveredChar.slug !== slug ||
+          !this.showTooltip ||
+          this.hoveredChar.type !== "loc")
+      ) {
         invoke<any>("read_location_by_name", { name: slug })
           .then((data) => {
-            console.log("Данные локации успешно получены из Rust:", data);
-            this.hoveredChar = { 
+            this.hoveredChar = {
               name: data.name || slug.replace(/_/g, " "),
               type_scene: data.type_scene || "ИНТ.",
               time_day: data.time_day || "ДЕНЬ",
               lighting: data.lighting || "",
               interior_details: data.interior_details || "",
               description: data.description || "",
-              slug, 
-              type: 'loc' 
+              slug,
+              type: "loc",
             };
             this.showTooltip = true;
           })
-          .catch((err) => {
-            // ЭТОТ ЛОГ ПОКАЖЕТ ОШИБКУ РАСТА, ЕСЛИ ОНА ЕСТЬ
-            console.error("Rust вернул ошибку при чтении локации:", err);
-          });
+          .catch((err) => console.error(err));
       }
       this.calculateTooltipPosition(event);
     } else {
@@ -204,12 +207,11 @@ export class AssetPanelManager {
     }
   }
 
-  // Вспомогательный метод расчета безопасных координат (Bumping Protection)
   private calculateTooltipPosition(event: MouseEvent) {
     let targetX = event.clientX + 20;
     let targetY = event.clientY - 240;
 
-    if (targetY < 10) targetY = event.clientY + 20; 
+    if (targetY < 10) targetY = event.clientY + 20;
     if (targetX + 420 > window.innerWidth) targetX = event.clientX - 440;
 
     this.tooltipPos = { x: targetX, y: targetY };

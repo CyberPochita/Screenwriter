@@ -159,3 +159,19 @@ pub async fn write_to_character(name_file: String, character: Character, state: 
     // Возвращаем актуальное имя файла (новое или прежнее), чтобы фронтенд знал его
     Ok(new_file_name)
 }
+
+#[tauri::command]
+pub async fn delete_character_file(name_file: String, state: tauri::State<'_, AppState>) -> Result<String, String> {
+    let opts = state.options.lock().map_err(|_| "Ошибка доступа к AppState".to_string())?;
+    
+    // Защита: извлекаем только имя файла, отсекая попытки Directory Traversal
+    let safe_name = std::path::Path::new(&name_file).file_name().ok_or("Некорректное имя файла")?;
+    let file_path = opts.characters_dir.join(safe_name);
+
+    if file_path.exists() {
+        fs::remove_file(&file_path).map_err(|e| format!("Не удалось удалить файл персонажа: {}", e))?;
+        Ok(format!("Файл {} успешно удален", name_file))
+    } else {
+        Err("Файл персонажа не найден".to_string())
+    }
+}

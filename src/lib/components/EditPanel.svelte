@@ -5,184 +5,97 @@
 
   function generatePerfectWordStyleTitlePage() {
     if (!doc || !doc.currentPage) return;
-
-    const editorDiv = document.querySelector(
-      '[role="textbox"]',
-    ) as HTMLDivElement;
+    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
     if (!editorDiv) return;
 
     editorDiv.focus();
-    editorDiv.innerHTML = ""; // Полностью очищаем лист перед вставкой
+    editorDiv.innerHTML = "";
 
-    // Использование &nbsp; гарантирует сохранение полей в памяти Svelte при смене страниц
-    const leftMargin = "&nbsp;".repeat(13); // 3.25 см
-    const contactMargin = "&nbsp;".repeat(52); // 8.25 см
-
+    const leftMargin = "&nbsp;".repeat(13);
+    const contactMargin = "&nbsp;".repeat(52);
     let htmlLayout = "";
 
-    // 1. Отступ сверху — 14 пустых строк
-    for (let i = 0; i < 14; i++) {
-      htmlLayout += "<div><br></div>";
-    }
-
-    // 2. Название сценария ЗАГЛАВНЫМИ
-    htmlLayout += `<div>${leftMargin}МАМА НЕ ГОРЮЙ</div>`;
-    htmlLayout += "<div><br></div>";
-
-    // 3. Имя автора
-    htmlLayout += `<div>${leftMargin}Константин Мурзенко, Максим Пежемский</div>`;
-    htmlLayout += "<div><br></div>";
-
-    // 4. Указание авторства
+    for (let i = 0; i < 14; i++) htmlLayout += "<div><br></div>";
+    htmlLayout += `<div>${leftMargin}МАМА НЕ ГОРЮЙ</div><div><br></div>`;
+    htmlLayout += `<div>${leftMargin}Константин Мурзенко, Максим Пежемский</div><div><br></div>`;
     htmlLayout += `<div>${leftMargin}Оригинальный сценарий</div>`;
-
-    // 5. Сдвиг до низа страницы (16 пустых строк)
-    for (let i = 0; i < 16; i++) {
-      htmlLayout += "<div><br></div>";
-    }
-
-    // 6. Блок контактов
+    for (let i = 0; i < 16; i++) htmlLayout += "<div><br></div>";
     htmlLayout += `<div>${contactMargin}Константин Мурзенко,</div>`;
     htmlLayout += `<div>${contactMargin}Максим Пежемский</div>`;
-    htmlLayout += `<div>${contactMargin}http://www.ezhe.ru/data/v</div>`;
+    htmlLayout += `<div>${contactMargin}http://ezhe.ru</div>`;
     htmlLayout += `<div>${contactMargin}gik/pm-mama.html</div>`;
 
-    // Вставляем HTML. Команда отработает идеально, без рекурсии
     document.execCommand("insertHTML", false, htmlLayout);
-
-    // Записываем HTML-код в реактивный стор текущей страницы для Rust XML
     doc.currentPage.text = editorDiv.innerHTML;
   }
 
   function selectElementText(element: HTMLElement) {
     if (!element) return;
-
-    // Находим текстовый узел внутри элемента (чтобы не зацепить теги)
     const textNode = element.firstChild;
     if (!textNode) return;
-
     const range = document.createRange();
     const selection = window.getSelection();
 
     if (selection) {
-      // Если текст начинается с неразрывных пробелов (&nbsp;),
-      // выделяем только сам текст, пропуская отступы полей
       const rawText = textNode.textContent || "";
-      const firstCharIndex = rawText.search(/[^\u00A0\s]/); // Находим индекс первой буквы
-
-      const startOffset = firstCharIndex !== -1 ? firstCharIndex : 0;
-      const endOffset = rawText.length;
-
-      range.setStart(textNode, startOffset);
-      range.setEnd(textNode, endOffset);
-
+      const firstCharIndex = rawText.search(/[^\u00A0\s]/);
+      range.setStart(textNode, firstCharIndex !== -1 ? firstCharIndex : 0);
+      range.setEnd(textNode, rawText.length);
       selection.removeAllRanges();
       selection.addRange(range);
     }
   }
 
-  /**
-   * Вспомогательный метод для вставки HTML и автоматического выделения нужной строки
-   */
   function insertAndSelect(htmlContent: string, targetSelector: string) {
     if (!doc || !doc.currentPage) return;
-
-    const editorDiv = document.querySelector(
-      '[role="textbox"]',
-    ) as HTMLDivElement;
+    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
     if (!editorDiv) return;
 
     editorDiv.focus();
-
-    // Вставляем HTML структуру через команду процессора
     document.execCommand("insertHTML", false, htmlContent);
 
-    // Даем браузеру микросекунду на отрисовку DOM, находим элемент и выделяем его текст
     setTimeout(() => {
       const insertedElements = editorDiv.querySelectorAll(targetSelector);
       if (insertedElements.length > 0) {
-        // Берем самый последний вставленный элемент этого типа
-        const lastElement = insertedElements[
-          insertedElements.length - 1
-        ] as HTMLElement;
+        const lastElement = insertedElements[insertedElements.length - 1] as HTMLElement;
         selectElementText(lastElement);
-
-        // Убираем временный класс, если он использовался для поиска
         if (lastElement.classList.contains("temp-select-target")) {
           lastElement.classList.remove("temp-select-target");
         }
       }
-      // Синхронизируем итоговый HTML со стором Svelte
       doc.currentPage.text = editorDiv.innerHTML;
     }, 10);
   }
 
-  // 1. Макрос: Время и место действия (Отступ 3.75 см = 15 пробелов)
   function insertSceneHeadingLayout() {
-    const text = "НАТ. ДВОР СТАНДАРТНОГО ДОМА - ДЕНЬ";
-    const html = `<div><br></div><div class="temp-select-target">${text}</div><div><br></div>`;
+    const html = `<div><br></div><div class="temp-select-target font-mono uppercase font-bold tracking-wide">НАТ. ДВОР СТАНДАРТНОГО ДОМА - ДЕНЬ</div><div><br></div>`;
     insertAndSelect(html, ".temp-select-target");
   }
 
-  // 2. Макрос: Описание действия (0 дополнительных пробелов)
   function insertActionDescriptionLayout() {
-    const text =
-      "МАЙОР мрачно ест пельмени. Пьет пиво. На столе перед ним красная клеенчатая папка.";
-    const html = `<div><br></div><div class="temp-select-target">${text}</div><div><br></div>`;
+    const html = `<div><br></div><div class="temp-select-target font-serif text-justify">МАЙОР мрачно ест пельмени. Пьет пиво. На столе перед ним красная клеенчатая папка.</div><div><br></div>`;
     insertAndSelect(html, ".temp-select-target");
   }
 
-  // 3. Макрос: Имя героя (Отступ 10.5 см = 29 пробелов внутри строки)
   function insertCharacterNameLayout() {
-    const leftMargin = "&nbsp;".repeat(29);
-    const text = "СЛЕДОВАТЕЛЬ";
-    const html = `<div><br></div><div class="temp-select-target">${leftMargin}${text}</div>`;
+    const leftMargin = "&nbsp;".repeat(35);
+    const html = `<div><br></div><div class="temp-select-target font-mono uppercase">${leftMargin}СЛЕДОВАТЕЛЬ</div>`;
     insertAndSelect(html, ".temp-select-target");
   }
 
-  // 4. Макрос: Реплика героя (CSS-отступы 7.5 см слева, 6.25 см справа)
   function insertCharacterDialogueLayout() {
-    const text = "Ты лучше бы не каркал...";
-    const html = `<div class="script-dialogue">${text}</div><div><br></div>`;
+    const html = `<div class="script-dialogue">Ты лучше бы не каркал...</div><div><br></div>`;
     insertAndSelect(html, ".script-dialogue");
   }
 
-  // 5. Макрос: Ремарка (CSS-отступы 9.25 см слева, 6.25 см справа)
   function insertParentheticalLayout() {
-    const text = "(рассматривает пистолет)";
-    const html = `<div class="script-parenthetical">${text}</div>`;
+    const html = `<div class="script-parenthetical">(рассматривает пистолет)</div>`;
     insertAndSelect(html, ".script-parenthetical");
   }
 
-  // 6. Макрос: Титр сценария (Вариант 3)
   function insertTitleLayout() {
-    const text = "Квартира Зубека, 12 июля, 12:57";
-    const html = `<div>ТИТР:</div><div><br></div><div class="script-title-text">${text}</div><div><br></div>`;
+    const html = `<div>ТИТР:</div><div><br></div><div class="script-title-text">Квартира Зубека, 12 июля, 12:57</div><div><br></div>`;
     insertAndSelect(html, ".script-title-text");
-  }
-
-  // Старый макрос полного заполнения Титульного листа (Word-style)
-  function generatePerfectXMLTitlePage() {
-    if (!doc) return;
-    doc.titlePage = {
-      formatting: {
-        top_margin: 14,
-        left_margin: 3.25,
-        right_margin: 3.25,
-        contact_left_margin: 8.25,
-      },
-      title: "МАМА НЕ ГОРЮЙ",
-      author: "Константин Мурзенко, Максим Пежемский",
-      authorship: "original",
-      contact: {
-        name: "Константин Мурзенко",
-        address: "http://ezhe.ru",
-        phone: "gik/pm-mama.html",
-        email: null,
-        agent: null,
-      },
-    };
-    doc.activeTab = "title";
   }
 
   function clearCurrentPageText() {
@@ -196,7 +109,6 @@
   }
 </script>
 
-<!-- Код разметки панели остается без изменений -->
 <div
   class="fixed inset-y-0 right-0 z-50 w-64 pointer-events-none overflow-hidden select-none"
 >
