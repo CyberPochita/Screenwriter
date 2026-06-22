@@ -7,6 +7,7 @@ use app_lib::AppState;
 use app_lib::options::Options;
 use app_lib::scenario::commands_scenario;
 use app_lib::characters::commands_characters;
+use app_lib::locations::commands_location;
 use std::sync::Mutex;
 use tauri::Manager;
 
@@ -76,6 +77,7 @@ fn main() {
       commands_scenario::enter_project, commands_scenario::exit_project, commands_scenario::return_dir,
       commands_scenario::create_file, commands_scenario::delete_file, commands_scenario::write_to_file, commands_scenario::entry_file, commands_scenario::get_files,
       commands_characters::get_characters, commands_characters::create_character, commands_characters::write_to_character, commands_characters::read_character, commands_characters::read_character_by_name,
+      commands_location::get_locations, commands_location::create_location, commands_location::read_location, commands_location::write_to_location, commands_location::read_location_by_name, 
       ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
