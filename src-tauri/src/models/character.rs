@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename = "character")] // Корневой тег в XML будет <character>
 pub struct Character {
     pub first_name: String,
     pub last_name: String,
