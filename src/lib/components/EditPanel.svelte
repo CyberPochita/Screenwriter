@@ -119,9 +119,8 @@
 
   // 1. Макрос: Время и место действия (Отступ 3.75 см = 15 пробелов)
   function insertSceneHeadingLayout() {
-    const leftMargin = "&nbsp;".repeat(15);
     const text = "НАТ. ДВОР СТАНДАРТНОГО ДОМА - ДЕНЬ";
-    const html = `<div><br></div><div class="temp-select-target">${leftMargin}${text}</div><div><br></div>`;
+    const html = `<div><br></div><div class="temp-select-target">${text}</div><div><br></div>`;
     insertAndSelect(html, ".temp-select-target");
   }
 
