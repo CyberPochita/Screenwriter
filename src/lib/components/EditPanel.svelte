@@ -52,139 +52,126 @@
     doc.currentPage.text = editorDiv.innerHTML;
   }
 
+  function selectElementText(element: HTMLElement) {
+    if (!element) return;
+    
+    // Находим текстовый узел внутри элемента (чтобы не зацепить теги)
+    const textNode = element.firstChild;
+    if (!textNode) return;
+
+    const range = document.createRange();
+    const selection = window.getSelection();
+
+    if (selection) {
+      // Если текст начинается с неразрывных пробелов (&nbsp;), 
+      // выделяем только сам текст, пропуская отступы полей
+      const rawText = textNode.textContent || "";
+      const firstCharIndex = rawText.search(/[^\u00A0\s]/); // Находим индекс первой буквы
+      
+      const startOffset = firstCharIndex !== -1 ? firstCharIndex : 0;
+      const endOffset = rawText.length;
+
+      range.setStart(textNode, startOffset);
+      range.setEnd(textNode, endOffset);
+      
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  }
+
+  /**
+   * Вспомогательный метод для вставки HTML и автоматического выделения нужной строки
+   */
+  function insertAndSelect(htmlContent: string, targetSelector: string) {
+    if (!doc || !doc.currentPage) return;
+
+    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
+    if (!editorDiv) return;
+
+    editorDiv.focus();
+
+    // Вставляем HTML структуру через команду процессора
+    document.execCommand("insertHTML", false, htmlContent);
+
+    // Даем браузеру микросекунду на отрисовку DOM, находим элемент и выделяем его текст
+    setTimeout(() => {
+      const insertedElements = editorDiv.querySelectorAll(targetSelector);
+      if (insertedElements.length > 0) {
+        // Берем самый последний вставленный элемент этого типа
+        const lastElement = insertedElements[insertedElements.length - 1] as HTMLElement;
+        selectElementText(lastElement);
+        
+        // Убираем временный класс, если он использовался для поиска
+        if (lastElement.classList.contains("temp-select-target")) {
+          lastElement.classList.remove("temp-select-target");
+        }
+      }
+      // Синхронизируем итоговый HTML со стором Svelte
+      doc.currentPage.text = editorDiv.innerHTML;
+    }, 10);
+  }
+
+  // 1. Макрос: Время и место действия (Отступ 3.75 см = 15 пробелов)
   function insertSceneHeadingLayout() {
-    if (!doc || !doc.currentPage) return;
-
-    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
-    if (!editorDiv) return;
-
-    // Возвращаем фокус в редактор на текущую позицию курсора
-    editorDiv.focus();
-    
-    // Шаблон по умолчанию (заглавными, разделение пробелами без знаков препинания)
-    const placeholderHeading = "НАТ. ДВОР СТАНДАРТНОГО МНОГОКВАРТИРНОГО ДОМА ДЕНЬ";
-
-    // Собираем HTML-строку: пустая строка ДО + заголовок сцены + пустая строка ПОСЛЕ
-    const sceneHtml = `<div><br></div><div>${placeholderHeading}</div><div><br></div>`;
-
-    // Имитируем ввод пользователя в позицию каретки
-    document.execCommand("insertHTML", false, sceneHtml);
-
-    // Синхронизируем итоговое HTML-содержимое со стором Svelte
-    doc.currentPage.text = editorDiv.innerHTML;
+    const leftMargin = "&nbsp;".repeat(15);
+    const text = "НАТ. ДВОР СТАНДАРТНОГО ДОМА - ДЕНЬ";
+    const html = `<div><br></div><div class="temp-select-target">${leftMargin}${text}</div><div><br></div>`;
+    insertAndSelect(html, ".temp-select-target");
   }
 
+  // 2. Макрос: Описание действия (0 дополнительных пробелов)
   function insertActionDescriptionLayout() {
-    if (!doc || !doc.currentPage) return;
-
-    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
-    if (!editorDiv) return;
-
-    editorDiv.focus();
-
-    // Шаблон текста описания действия из вашего референса
-    const placeholderAction = "МАЙОР мрачно ест пельмени. Пьет пиво. На столе перед ним красная клеенчатая папка, спортивная газета свернутая в трубочку и пачка сигарет.";
-
-    // Формируем HTML: пустая строка ДО + текст без отступов слева + пустая строка ПОСЛЕ
-    const actionHtml = `<div><br></div><div>${placeholderAction}</div><div><br></div>`;
-
-    // Вставляем структуру в текущую позицию каретки
-    document.execCommand("insertHTML", false, actionHtml);
-
-    // Синхронизируем состояние со стором Svelte
-    doc.currentPage.text = editorDiv.innerHTML;
+    const text = "МАЙОР мрачно ест пельмени. Пьет пиво. На столе перед ним красная клеенчатая папка.";
+    const html = `<div><br></div><div class="temp-select-target">${text}</div><div><br></div>`;
+    insertAndSelect(html, ".temp-select-target");
   }
 
+  // 3. Макрос: Имя героя (Отступ 10.5 см = 29 пробелов внутри строки)
   function insertCharacterNameLayout() {
-    if (!doc || !doc.currentPage) return;
-
-    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
-    if (!editorDiv) return;
-
-    editorDiv.focus();
-
-    // 42 пробела всего - 13 пробелов базового поля padding-left = 29 неразрывных пробелов
-    const leftMarginSpaces = "&nbsp;".repeat(29);
-    
-    // Шаблон имени героя из вашего референса (строго ЗАГЛАВНЫМИ)
-    const placeholderCharacter = "СЛЕДОВАТЕЛЬ";
-
-    // Формируем HTML: пустая строка ДО + имя героя. 
-    // Пустую строку ПОСЛЕ не ставим, так как реплика идет сразу под именем.
-    const characterHtml = `<div><br></div><div>${leftMarginSpaces}${placeholderCharacter}</div>`;
-
-    // Вставляем структуру в позицию каретки
-    document.execCommand("insertHTML", false, characterHtml);
-
-    // Синхронизируем состояние со стором Svelte
-    doc.currentPage.text = editorDiv.innerHTML;
+    const leftMargin = "&nbsp;".repeat(29);
+    const text = "СЛЕДОВАТЕЛЬ";
+    const html = `<div><br></div><div class="temp-select-target">${leftMargin}${text}</div>`;
+    insertAndSelect(html, ".temp-select-target");
   }
 
+  // 4. Макрос: Реплика героя (CSS-отступы 7.5 см слева, 6.25 см справа)
   function insertCharacterDialogueLayout() {
-    if (!doc || !doc.currentPage) return;
-
-    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
-    if (!editorDiv) return;
-
-    editorDiv.focus();
-
-    // Чистый текст шаблона без единого пробела и без инлайн-стилей!
-    const placeholderDialogue = "Ты лучше бы не каркал...";
-
-    // Создаем структуру: пустая строка ДО + блок реплики + пустая строка ПОСЛЕ
-    const dialogueHtml = 
-      `<div class="script-dialogue">${placeholderDialogue}</div>` +
-      `<div><br></div>`;
-
-    document.execCommand("insertHTML", false, dialogueHtml);
-    doc.currentPage.text = editorDiv.innerHTML;
+    const text = "Ты лучше бы не каркал...";
+    const html = `<div class="script-dialogue">${text}</div><div><br></div>`;
+    insertAndSelect(html, ".script-dialogue");
   }
 
+  // 5. Макрос: Ремарка (CSS-отступы 9.25 см слева, 6.25 см справа)
   function insertParentheticalLayout() {
-    if (!doc || !doc.currentPage) return;
-
-    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
-    if (!editorDiv) return;
-
-    editorDiv.focus();
-
-    // Чистый текст шаблона ремарки из вашего примера (в скобках)
-    const placeholderParenthetical = "(рассматривает пистолет)";
-
-    // Вставляем блок ремарки. Пустые строки <br> вокруг НЕ создаем, 
-    // так как она должна идти вплотную к репликам.
-    const parentheticalHtml = `<div class="script-parenthetical">${placeholderParenthetical}</div>`;
-
-    document.execCommand("insertHTML", false, parentheticalHtml);
-    doc.currentPage.text = editorDiv.innerHTML;
+    const text = "(рассматривает пистолет)";
+    const html = `<div class="script-parenthetical">${text}</div>`;
+    insertAndSelect(html, ".script-parenthetical");
   }
 
+  // 6. Макрос: Титр сценария (Вариант 3)
   function insertTitleLayout() {
-    if (!doc || !doc.currentPage) return;
+    const text = "Квартира Зубека, 12 июля, 12:57";
+    const html = `<div>ТИТР:</div><div><br></div><div class="script-title-text">${text}</div><div><br></div>`;
+    insertAndSelect(html, ".script-title-text");
+  }
 
-    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
-    if (!editorDiv) return;
-
-    editorDiv.focus();
-
-    const placeholderTitleText = "Квартира Зубека, 12 июля, 12:57";
-
-    // Собираем Вариант 3: 
-    // Маркер ТИТР: -> пустая строка -> Текст титра с форматированием ремарки -> пустая строка ПОСЛЕ
-    const titleHtml = 
-      `<div>ТИТР:</div>` +
-      `<div><br></div>` +
-      `<div class="script-title-text">${placeholderTitleText}</div>` +
-      `<div><br></div>`;
-
-    document.execCommand("insertHTML", false, titleHtml);
-    doc.currentPage.text = editorDiv.innerHTML;
+  // Старый макрос полного заполнения Титульного листа (Word-style)
+  function generatePerfectXMLTitlePage() {
+    if (!doc) return;
+    doc.titlePage = {
+      formatting: { top_margin: 14, left_margin: 3.25, right_margin: 3.25, contact_left_margin: 8.25 },
+      title: "МАМА НЕ ГОРЮЙ",
+      author: "Константин Мурзенко, Максим Пежемский",
+      authorship: "original",
+      contact: { name: "Константин Мурзенко", address: "http://ezhe.ru", phone: "gik/pm-mama.html", email: null, agent: null }
+    };
+    doc.activeTab = 'title';
   }
 
   function clearCurrentPageText() {
     if (!doc || !doc.currentPage) return;
     doc.currentPage.text = "";
-    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
+    const editorDiv = document.querySelector('[role="textbox"]');
     if (editorDiv) {
       editorDiv.innerHTML = "<div><br></div>";
       editorDiv.dispatchEvent(new Event('input', { bubbles: true }));
