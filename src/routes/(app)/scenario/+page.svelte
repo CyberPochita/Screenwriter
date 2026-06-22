@@ -94,6 +94,12 @@
               >
                 Создать страницу
               </button>
+              <button
+                onclick={() => doc.deleteCurrentPage()}
+                class="w-full py-2.5 px-4 bg-white border border-black/10 text-black/70 rounded-xl font-sans text-sm font-semibold hover:bg-black hover:text-white hover:shadow-md transition-all cursor-pointer text-center"
+              >
+                Удалить страницу
+              </button>
 
               <div class="flex gap-1 h-11">
                 <button

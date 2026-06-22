@@ -63,10 +63,53 @@ export function createDocumentStore() {
 
     // Сборка для записи XML-документа на бэкенд
     getCompilePayload() {
-      // ИСПРАВЛЕНО: Мапим поле 'text' в ключ '"$value"', который жестко ожидает Rust Serde
+      // Функция-помощник: проверяет, является ли страница текстового процессора пустой
+      const isPageEmpty = (htmlText: string): boolean => {
+        if (!htmlText) return true;
+        // Удаляем все HTML-теги, неразрывные пробелы &nbsp; и обычные пробелы/переносы
+        const cleanText = htmlText
+          .replace(/<\/?[^>]+(>|$)/g, "") // Вырезаем <div>, <br> и т.д.
+          .replace(/&nbsp;/g, "")         // Вырезаем сущности пробелов
+          .trim();                        // Удаляем пробелы по краям
+        
+        return cleanText.length === 0;
+      };
+
+      // 1. Фильтруем массив: оставляем только те страницы, которые НЕ пустые
+      let filteredPages = pages.filter((p, index) => {
+        // Первую страницу (индекс 0) мы НИКОГДА не удаляем, даже если она пустая,
+        // чтобы в XML-документе всегда оставался хотя бы один лист.
+        if (index === 0) return true;
+        
+        return !isPageEmpty(p.text);
+      });
+
+      // 2. Если массив изменился (какие-то пустые страницы были удалены)
+      if (filteredPages.length !== pages.length) {
+        // Пересчитываем ID для оставшихся страниц, чтобы CodeMirror/Svelte не теряли ключи
+        pages = filteredPages.map((p, idx) => {
+          p.id = idx + 1;
+          return p;
+        });
+
+        // Корректируем currentIndex, если автор стоял на одной из удаленных пустых страниц
+        if (currentIndex >= pages.length) {
+          currentIndex = pages.length - 1;
+        }
+
+        // Принудительно обновляем текст в DOM-редакторе на текущую валидную страницу
+        queueMicrotask(() => {
+          const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
+          if (editorDiv && pages[currentIndex]) {
+            editorDiv.innerHTML = pages[currentIndex].text || "<div><br></div>";
+          }
+        });
+      }
+
+      // 3. Формируем идеально чистый payload для отправки в IPC Tauri команду Rust
       const cleanPages = pages.map(p => ({
         formatting: $state.snapshot(p.formatting),
-        "$value": p.text || "" // Переименовываем ключ для бэкенда quick-xml
+        "$value": p.text || ""
       }));
 
       return {
@@ -86,6 +129,42 @@ export function createDocumentStore() {
       pages.push({ id: newId, formatting: { ...DEFAULT_SCRIPT_FORMATTING }, text: initialText });
       currentIndex = pages.length - 1;
       focusEditor();
+    },
+    deleteCurrentPage() {
+      if (pages.length <= 1) {
+        alert("Невозможно удалить страницу. В сценарии должен оставаться минимум один лист.");
+        return;
+      }
+
+      const confirmDelete = confirm(`Вы действительно хотите удалить страницу ${currentIndex + 1}? Весь текст на ней будет безвозвратно стерт.`);
+      if (!confirmDelete) return;
+
+      const targetIndex = currentIndex;
+
+      // 1. Если удаляем самую последнюю страницу в документе — безопасно сдвигаем индекс назад
+      if (targetIndex === pages.length - 1) {
+        currentIndex = targetIndex - 1;
+      }
+
+      // 2. Вырезаем именно текущую страницу из реактивного массива Svelte 5
+      pages.splice(targetIndex, 1);
+
+      // 3. КРИТИЧЕСКИ ВАЖНО (Word-style): Пересчитываем ID всех оставшихся страниц.
+      // Это заставит Свелт изменить pageId, что мгновенно разбудит изолированный $effect в Editor.svelte
+      pages = pages.map((page, idx) => {
+        page.id = idx + 1;
+        return page;
+      });
+
+      // 4. Принудительно синхронизируем DOM-редактор с текстом новой текущей страницы
+      queueMicrotask(() => {
+        const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
+        if (editorDiv && pages[currentIndex]) {
+          // Записываем текст той страницы, которая встала на место удаленной
+          editorDiv.innerHTML = pages[currentIndex].text || "<div><br></div>";
+          focusEditor();
+        }
+      });
     }
   };
 }
