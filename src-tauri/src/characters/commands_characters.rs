@@ -7,6 +7,28 @@ use crate::AppState;
 use crate::models::character::Character;
 
 #[tauri::command]
+pub async fn read_character_by_name(name: String, state: tauri::State<'_, AppState>) -> Result<Character, String> {
+    let opts = state.options.lock().map_err(|_| "Ошибка доступа к AppState".to_string())?;
+    
+    // Формируем имя файла из переданного slug (например, "potter_harry.writer")
+    let file_name = format!("{}.writer", name.to_lowercase().trim());
+    let file_path = opts.characters_dir.join(file_name);
+
+    if !file_path.exists() {
+        return Err("Персонаж не найден в архивной базе".to_string());
+    }
+
+    let content = fs::read_to_string(&file_path)
+        .map_err(|e| format!("Не удалось открыть файл персонажа: {}", e))?;
+        
+    // Десериализуем из нашего XML формата .writer
+    let character: Character = quick_xml::de::from_str(&content)
+        .map_err(|e| format!("Ошибка парсинга формата .writer (XML): {}", e))?;
+
+    Ok(character)
+}
+
+#[tauri::command]
 pub async fn get_characters(state: State<'_, AppState>) -> Result<Vec<String>, String> {
     let opts = state.options.lock().map_err(|_| "Ошибка доступа к AppState".to_string())?;
     let path = &opts.characters_dir;
