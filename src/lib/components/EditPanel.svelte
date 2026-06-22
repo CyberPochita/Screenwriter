@@ -159,6 +159,28 @@
     doc.currentPage.text = editorDiv.innerHTML;
   }
 
+  function insertTitleLayout() {
+    if (!doc || !doc.currentPage) return;
+
+    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
+    if (!editorDiv) return;
+
+    editorDiv.focus();
+
+    const placeholderTitleText = "Квартира Зубека, 12 июля, 12:57";
+
+    // Собираем Вариант 3: 
+    // Маркер ТИТР: -> пустая строка -> Текст титра с форматированием ремарки -> пустая строка ПОСЛЕ
+    const titleHtml = 
+      `<div>ТИТР:</div>` +
+      `<div><br></div>` +
+      `<div class="script-title-text">${placeholderTitleText}</div>` +
+      `<div><br></div>`;
+
+    document.execCommand("insertHTML", false, titleHtml);
+    doc.currentPage.text = editorDiv.innerHTML;
+  }
+
   function clearCurrentPageText() {
     if (!doc || !doc.currentPage) return;
     doc.currentPage.text = "";
@@ -179,27 +201,30 @@
     <div class="flex flex-1 flex-col gap-4 p-5 font-sans">
       <h3 class="font-mono text-[12px] uppercase tracking-widest text-black/40 font-bold border-b border-black/5 pb-1">Панель управления</h3>
       <div class="flex flex-col gap-2">
-        <button onclick={generatePerfectWordStyleTitlePage} class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-black text-white font-mono text-m transition-all hover:bg-gray-800 active:scale-[0.98] outline-none flex items-center justify-between">
+        <button onclick={generatePerfectWordStyleTitlePage} class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-white text-black/70 font-mono text-[13px] transition-all hover:bg-black hover:text-white active:scale-[0.98] outline-none flex items-center justify-between">
           <span>Макет титула</span>
         </button>
         <button
           onclick={insertSceneHeadingLayout}
-          class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-black text-white font-mono text-xs transition-all hover:bg-gray-800 active:scale-[0.98] outline-none flex items-center justify-between"
-        >
+          class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-white text-black/70 font-mono text-[13px] transition-all hover:bg-black hover:text-white active:scale-[0.98] outline-none flex items-center justify-between">
           <span>Время и место</span>
         </button>
-        <button onclick={insertActionDescriptionLayout} class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-black text-white font-mono text-m transition-all hover:bg-gray-800 active:scale-[0.98] outline-none flex items-center justify-between">
+        <button onclick={insertActionDescriptionLayout} class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-white text-black/70 font-mono text-[13px] transition-all hover:bg-black hover:text-white active:scale-[0.98] outline-none flex items-center justify-between">
           <span>Описание действия</span>
         </button>
-        <button onclick={insertCharacterNameLayout} class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-black text-white font-mono text-m transition-all hover:bg-gray-800 active:scale-[0.98] outline-none flex items-center justify-between">
+        <button onclick={insertCharacterNameLayout} class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-white text-black/70 font-mono text-[13px] transition-all hover:bg-black hover:text-white active:scale-[0.98] outline-none flex items-center justify-between">
           <span>Имя героя</span>
         </button>
-         <button onclick={insertCharacterDialogueLayout} class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-black text-white font-mono text-m transition-all hover:bg-gray-800 active:scale-[0.98] outline-none flex items-center justify-between">
+         <button onclick={insertCharacterDialogueLayout} class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-white text-black/70 font-mono text-[13px] transition-all hover:bg-black hover:text-white active:scale-[0.98] outline-none flex items-center justify-between">
           <span>Реплика героя</span>
         </button>
-        <button onclick={insertParentheticalLayout} class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-black text-white font-mono text-m transition-all hover:bg-gray-800 active:scale-[0.98] outline-none flex items-center justify-between">
+        <button onclick={insertParentheticalLayout} class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-white text-black/70 font-mono text-[13px] transition-all hover:bg-black hover:text-white active:scale-[0.98] outline-none flex items-center justify-between">
           <span>Ремарка</span>
         </button>
+        <button onclick={insertTitleLayout} class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-white text-black/70 font-mono text-[13px] transition-all hover:bg-black hover:text-white active:scale-[0.98] outline-none flex items-center justify-between">
+          <span>Титр</span>
+        </button>
+        <div class="border-t border-black/5 my-1"></div>
         <button onclick={clearCurrentPageText} class="w-full h-9 text-left px-3 rounded-lg border border-gray-200 bg-white text-gray-600 font-mono text-xs transition-all hover:bg-red-50 hover:text-red-600 hover:border-red-200 active:scale-[0.98] outline-none">
           Очистить лист
         </button>

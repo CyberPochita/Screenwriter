@@ -124,4 +124,19 @@
     white-space: pre-wrap !important;
     word-break: break-word !important;
   }
+
+  .editor-wrapper :global(.script-title-text) {
+    display: block !important;
+    width: auto !important;
+    
+    /* Копируем левое поле ремарки: 9.25cm всего - 3.25cm базового поля = 6.0cm */
+    margin-left: calc(9.25cm - 3.25cm) !important;
+    
+    /* Копируем правое поле ремарки: 6.25cm всего - 2.5cm базового поля = 3.75cm */
+    margin-right: calc(6.25cm - 2.5cm) !important;
+    
+    padding: 0 !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+  }
 </style>
