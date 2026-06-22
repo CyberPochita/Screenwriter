@@ -59,7 +59,7 @@
   });
 </script>
 
-<div class="zoom-[0.75] select-none">
+<div class="zoom-[0.75]">
   <div
     bind:this={containerRef}
     class="w-a4 h-a4 overflow-hidden bg-white rounded-lg shadow-inner box-border relative"
@@ -73,7 +73,7 @@
       onkeydown={handleKeyDown}
       oninput={handleInput}
       class="editor-wrapper w-full h-full p-4 font-mono text-lg text-left outline-none box-border"
-      style="outline: none; white-space: pre-wrap; word-break: break-all;"
+      style="outline: none; white-space: pre-wrap; word-break: break-word;"
     ></div>
   </div>
 </div>
