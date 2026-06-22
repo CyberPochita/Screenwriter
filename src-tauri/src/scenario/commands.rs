@@ -7,12 +7,19 @@ use crate::models::xml_struct::formatting::Formatting;
 
 #[tauri::command(rename_all = "camelCase")]
 pub fn enter_project(state: tauri::State<'_, AppState>, projectName: String) -> Result<String, String> {
-    let opts = state.options.lock().map_err(|_| "State lock error")?;
+    // 1. Блокируем Mutex как МУТАБЕЛЬНЫЙ (добавлено слово mut)
+    let mut opts = state.options.lock().map_err(|_| "State lock error")?;
     
+    // 2. Формируем полный путь к папке проекта сценариев
     let project_path = opts.scenarios_dir.join(&projectName);
-    fs::create_dir_all(&project_path).map_err(|e| e.to_string())?;
+    
+    // 3. Создаем директорию на диске, если её ещё нет
+    fs::create_dir_all(&project_path).map_err(|e| format!("Не удалось создать папку проекта: {}", e))?;
  
-    Ok(format!("Вошли в проект: {}", projectName))
+    // 4. КРИТИЧЕСКИ ВАЖНО: Переключаем текущую рабочую директорию приложения на этот проект!
+    opts.current_dir = project_path;
+
+    Ok(format!("Успешно вошли в проект и обновили пути: {}", projectName))
 }
 
 #[tauri::command]

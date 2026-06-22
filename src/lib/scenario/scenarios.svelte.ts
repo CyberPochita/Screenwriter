@@ -55,17 +55,25 @@ export function createScenarioManager(navState: NavState, doc: any) {
 
   async function loadContent(fileName: string) {
     try {
-      // Rust возвращает структуру ScenarioDocument в формате JSON-объекта
+      // Вызываем бэкенд команду. Помните, что из-за макроса ключ аргумента — nameFile
       const result = await invoke<any>("entry_file", { nameFile: fileName });
       
       if (result) {
-        // Вызываем метод стора, который мы писали ранее.
-        // Он сам разложит данные по полочкам и восстановит массив страниц с id
+        // --- ЛОГИКА: МЫ ОТКРЫЛИ ВАЛИДНЫЙ ФАЙЛ .writer ---
+        // Стор сам разложит данные по полочкам и восстановит массив страниц с id
         doc.setFromNetwork(result); 
         
         // Активируем экран редактора
         chooseFile = fileName;
         navState.isVisible = !navState.isVisible;
+      } else {
+        // --- ЛОГИКА: МЫ ЗАШЛИ В ДИРЕКТОРИЮ (ПАПКУ ПРОЕКТА) ---
+        // 1. Обновляем реактивное имя текущего проекта в шапке архива
+        currentProject = fileName;
+        
+        // 2. КРИТИЧЕСКИ ВАЖНО: Принудительно заставляем фронтенд 
+        // перечитать список файлов из новой папки current_dir бэкенда!
+        await get_files();
       }
     } catch (err) {
       console.error("Ошибка в загрузке контента: ", err);
