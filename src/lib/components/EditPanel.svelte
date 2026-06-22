@@ -74,6 +74,52 @@
     doc.currentPage.text = editorDiv.innerHTML;
   }
 
+  function insertActionDescriptionLayout() {
+    if (!doc || !doc.currentPage) return;
+
+    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
+    if (!editorDiv) return;
+
+    editorDiv.focus();
+
+    // Шаблон текста описания действия из вашего референса
+    const placeholderAction = "МАЙОР мрачно ест пельмени. Пьет пиво. На столе перед ним красная клеенчатая папка, спортивная газета свернутая в трубочку и пачка сигарет.";
+
+    // Формируем HTML: пустая строка ДО + текст без отступов слева + пустая строка ПОСЛЕ
+    const actionHtml = `<div><br></div><div>${placeholderAction}</div><div><br></div>`;
+
+    // Вставляем структуру в текущую позицию каретки
+    document.execCommand("insertHTML", false, actionHtml);
+
+    // Синхронизируем состояние со стором Svelte
+    doc.currentPage.text = editorDiv.innerHTML;
+  }
+
+  function insertCharacterNameLayout() {
+    if (!doc || !doc.currentPage) return;
+
+    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
+    if (!editorDiv) return;
+
+    editorDiv.focus();
+
+    // 42 пробела всего - 13 пробелов базового поля padding-left = 29 неразрывных пробелов
+    const leftMarginSpaces = "&nbsp;".repeat(29);
+    
+    // Шаблон имени героя из вашего референса (строго ЗАГЛАВНЫМИ)
+    const placeholderCharacter = "СЛЕДОВАТЕЛЬ";
+
+    // Формируем HTML: пустая строка ДО + имя героя. 
+    // Пустую строку ПОСЛЕ не ставим, так как реплика идет сразу под именем.
+    const characterHtml = `<div><br></div><div>${leftMarginSpaces}${placeholderCharacter}</div>`;
+
+    // Вставляем структуру в позицию каретки
+    document.execCommand("insertHTML", false, characterHtml);
+
+    // Синхронизируем состояние со стором Svelte
+    doc.currentPage.text = editorDiv.innerHTML;
+  }
+
   function clearCurrentPageText() {
     if (!doc || !doc.currentPage) return;
     doc.currentPage.text = "";
@@ -102,6 +148,12 @@
           class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-black text-white font-mono text-xs transition-all hover:bg-gray-800 active:scale-[0.98] outline-none flex items-center justify-between"
         >
           <span>Время и место</span>
+        </button>
+        <button onclick={insertActionDescriptionLayout} class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-black text-white font-mono text-m transition-all hover:bg-gray-800 active:scale-[0.98] outline-none flex items-center justify-between">
+          <span>Описание действия</span>
+        </button>
+        <button onclick={insertCharacterNameLayout} class="w-full h-11 text-left px-3 rounded-lg border border-black/10 bg-black text-white font-mono text-m transition-all hover:bg-gray-800 active:scale-[0.98] outline-none flex items-center justify-between">
+          <span>Имя героя</span>
         </button>
         <button onclick={clearCurrentPageText} class="w-full h-9 text-left px-3 rounded-lg border border-gray-200 bg-white text-gray-600 font-mono text-xs transition-all hover:bg-red-50 hover:text-red-600 hover:border-red-200 active:scale-[0.98] outline-none">
           Очистить лист
