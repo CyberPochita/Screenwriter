@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getContext } from "svelte";
+  import "$lib/../theme.css"
 
   let doc = getContext<any>("doc");
 
@@ -68,33 +69,33 @@
   }
 
   function insertSceneHeadingLayout() {
-    const html = `<div><br></div><div class="temp-select-target font-mono uppercase font-bold tracking-wide">НАТ. ДВОР СТАНДАРТНОГО ДОМА - ДЕНЬ</div><div><br></div>`;
+    const html = `<div><br></div><div class="temp-select-target font-courier text-12pt uppercase tracking-wide">НАТ. ДВОР СТАНДАРТНОГО ДОМА - ДЕНЬ</div><div><br></div>`;
     insertAndSelect(html, ".temp-select-target");
   }
 
   function insertActionDescriptionLayout() {
-    const html = `<div><br></div><div class="temp-select-target font-serif text-justify">МАЙОР мрачно ест пельмени. Пьет пиво. На столе перед ним красная клеенчатая папка.</div><div><br></div>`;
+    const html = `<div><br></div><div class="temp-select-target font-courier text-12pt  text-justify">МАЙОР мрачно ест пельмени. Пьет пиво. На столе перед ним красная клеенчатая папка.</div><div><br></div>`;
     insertAndSelect(html, ".temp-select-target");
   }
 
   function insertCharacterNameLayout() {
     const leftMargin = "&nbsp;".repeat(35);
-    const html = `<div><br></div><div class="temp-select-target font-mono uppercase">${leftMargin}СЛЕДОВАТЕЛЬ</div>`;
+    const html = `<div><br></div><div class="temp-select-target font-courier text-12pt  uppercase">${leftMargin}СЛЕДОВАТЕЛЬ</div>`;
     insertAndSelect(html, ".temp-select-target");
   }
 
   function insertCharacterDialogueLayout() {
-    const html = `<div class="script-dialogue">Ты лучше бы не каркал...</div><div><br></div>`;
+    const html = `<div class="script-dialogue font-courier text-12pt">Ты лучше бы не каркал...</div><div><br></div>`;
     insertAndSelect(html, ".script-dialogue");
   }
 
   function insertParentheticalLayout() {
-    const html = `<div class="script-parenthetical">(рассматривает пистолет)</div>`;
+    const html = `<div class="script-parenthetical font-courier text-12pt ">(рассматривает пистолет)</div>`;
     insertAndSelect(html, ".script-parenthetical");
   }
 
   function insertTitleLayout() {
-    const html = `<div>ТИТР:</div><div><br></div><div class="script-title-text">Квартира Зубека, 12 июля, 12:57</div><div><br></div>`;
+    const html = `<div>ТИТР:</div><div><br></div><div class="script-title-text font-courier text-12pt ">Квартира Зубека, 12 июля, 12:57</div><div><br></div>`;
     insertAndSelect(html, ".script-title-text");
   }
 

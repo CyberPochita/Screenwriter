@@ -122,10 +122,10 @@ export class AssetPanelManager {
       if (this.dragType === "character") {
         const slug = (this as any)._currentDragSlug || "";
         const leftMargin = "&nbsp;".repeat(35);
-        htmlToInsert = `<div><br></div><div class="font-mono uppercase">${leftMargin}<span class="character-link cursor-help border-b border-dashed border-black/20 hover:border-black/60 transition-colors" data-char-slug="${slug}" contenteditable="false">${this.draggedText}</span></div><div><br></div>`;
+        htmlToInsert = `<div><br></div><div class="font-courier text-12pt uppercase">${leftMargin}<span class="character-link cursor-help border-b border-dashed border-black/20 hover:border-black/60 transition-colors" data-char-slug="${slug}" contenteditable="false">${this.draggedText}</span></div><div><br></div>`;
       } else {
         const slug = (this as any)._currentDragSlug || "";
-        htmlToInsert = `<div><br></div><div class="location-link cursor-help font-mono uppercase font-bold tracking-wide border-b border-dashed border-black/10 hover:border-black/40 transition-colors" data-loc-slug="${slug}" contenteditable="false">${this.draggedText}</div><div><br></div>`;
+        htmlToInsert = `<div><br></div><div class="location-link cursor-help font-mono uppercase tracking-wide border-b border-dashed border-black/10 hover:border-black/40 transition-colors" data-loc-slug="${slug}" contenteditable="false">${this.draggedText}</div><div><br></div>`;
       }
 
       const selection = window.getSelection();

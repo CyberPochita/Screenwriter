@@ -89,8 +89,8 @@
               Количество страниц: {doc.pages.length}
             </p>
             <!-- TODO: Настроить счетчики -->
-            <p class="text-m uppercase tracking-wider">Количество букв: 0</p>
-            <p class="text-m uppercase tracking-wider">Количество слов: 0</p>
+            <!-- <p class="text-m uppercase tracking-wider">Количество букв: 0</p>
+            <p class="text-m uppercase tracking-wider">Количество слов: 0</p> -->
           </div>
 
           <div

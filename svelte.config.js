@@ -9,8 +9,16 @@ const config = {
 
   kit: {
     adapter: adapter({
+      pages: 'build',
+      assets: 'build',
       fallback: 'index.html',
+      precompress: false,
+      strict: true
     }),
+    prerender: {
+      crawl: false,
+      entries: [] 
+    }
   },
 };
 

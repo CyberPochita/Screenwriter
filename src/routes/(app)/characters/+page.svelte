@@ -2,7 +2,7 @@
   import { onMount, getContext, onDestroy } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import type { Character } from "$lib/types/character";
-  import "../../../app.css";
+  import "$lib/../app.css"; 
   import Toast from "$lib/components/Toast.svelte";
 
   // Контекст для скрытия меню навигации

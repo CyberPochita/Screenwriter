@@ -62,9 +62,9 @@
             -->
             <div
               onmousedown={(e) => assets.startVirtualDrag(e, file, "character")}
-              class="h-11 px-3 shrink-0 rounded-lg border border-black/10 bg-white text-black/70 font-mono text-[13px] 
+              class="h-11 px-3 shrink-0 rounded-lg border border-black/10 bg-white text-black/70 font-courier text-12pt
                      transition-all hover:bg-black hover:text-white hover:border-black active:scale-[0.98] 
-                     cursor-grab active:cursor-grabbing flex items-center justify-between min-w-[140px] shadow-sm select-none"
+                     cursor-grab active:cursor-grabbing flex  items-center justify-between min-w-[140px] shadow-sm select-none"
             >
               <span class="capitalize truncate pr-2">{file.replace(".writer", "").replace(/_/g, " ")}</span>
               <span class="text-[10px] opacity-30 select-none shrink-0">👤</span>
@@ -77,7 +77,7 @@
           {#each assets.locationList as file}
             <div
               onmousedown={(e) => assets.startVirtualDrag(e, file, "location")}
-              class="h-11 px-3 shrink-0 rounded-lg border border-black/10 bg-white text-black/70 font-mono text-[13px] 
+              class="h-11 px-3 shrink-0 rounded-lg border border-black/10 bg-white text-black/70 font-courier text-12pt
                      transition-all hover:bg-black hover:text-white hover:border-black active:scale-[0.98] 
                      cursor-grab active:cursor-grabbing flex items-center justify-between min-w-[160px] shadow-sm select-none"
             >
@@ -99,20 +99,17 @@
   </div>
 </div>
 
-<!-- 🌟 ЛЕТАЮЩИЙ ЗА МЫШКОЙ «ПРИЗРАК» КАРТОЧКИ (Отображается только во время переноса) -->
 {#if assets.isDragging}
   <div 
     class="fixed z- px-4 h-11 border border-black bg-black text-white rounded-lg font-mono text-[13px] 
            pointer-events-none flex items-center justify-center shadow-2xl opacity-90 animate-in fade-in duration-150"
     style="left: {assets.dragPos.x + 12}px; top: {assets.dragPos.y + 12}px;"
   >
-    <!-- 🌟 Иконка меняется автоматически -->
     <span class="mr-2">{assets.dragType === 'character' ? '👤' : '📍'}</span>
     <span class="font-bold tracking-wide">{assets.draggedText}</span>
   </div>
 {/if}
 <style>
-  /* Тонкий кастомный скроллбар для аккуратного вывода карточек */
   .scrollbar-thin::-webkit-scrollbar {
     height: 4px;
   }

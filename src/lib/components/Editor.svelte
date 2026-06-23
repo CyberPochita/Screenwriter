@@ -89,7 +89,7 @@
       ondrop={(e) => {
         setTimeout(() => { if (editorRef) value = editorRef.innerHTML; }, 10);
       }}
-      class="editor-wrapper w-full h-full p-4 font-mono text-lg text-left outline-none box-border"
+      class="editor-wrapper w-full h-full p-4 text-left outline-none box-border"
       style="outline: none; white-space: pre-wrap; word-break: break-word;"
     ></div>
   </div>

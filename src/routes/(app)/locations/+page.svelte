@@ -3,7 +3,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import Toast from "$lib/components/Toast.svelte";
   import type { Location } from "$lib/types/location";
-  import "../../../app.css";
+  import "$lib/../app.css"; 
 
   interface NavState {
     isVisible: boolean;

@@ -3,4 +3,6 @@
 @theme {
   --width-a4: 210mm;
   --height-a4: 297mm;
+  --font-courier: "Courier New", Courier, monospace;
+  --font-size-12pt: 12pt; 
 }

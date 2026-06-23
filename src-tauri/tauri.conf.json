@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "screenwriter",
+  "productName": "Screenwriter",
   "version": "../package.json",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.screenwriter-os.app",
   "build": {
     "frontendDist": "../build",
     "devUrl": "http://localhost:5173",
