@@ -1,1 +1,1 @@
-pub mod gen_xml;
+pub mod xml_structure;
