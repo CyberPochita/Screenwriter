@@ -48,11 +48,7 @@ export function createScenarioManager(navState: NavState, doc: any) {
   async function createScenario() {
     if (!newName) return;
     try {
-      // Гарантируем, что файл создается с расширением .writer
-      const fileName = newName.endsWith(".writer")
-        ? newName
-        : `${newName}.writer`;
-      await invoke("create_file", { name: fileName });
+      await invoke("create_file", { name: newName });
       newName = "";
       await get_files();
       showToast(`Создан сценарий: ${newName}.writer`);
@@ -64,46 +60,35 @@ export function createScenarioManager(navState: NavState, doc: any) {
 
   async function loadContent(fileName: string) {
     try {
-      // Вызываем бэкенд команду. Помните, что из-за макроса ключ аргумента — nameFile
       const result = await invoke<any>("entry_file", { nameFile: fileName });
+      console.log("РЕЗУЛЬТАТ ОТ БЭКЕНДА RUST:", result);
 
-      if (result) {
-        // --- ЛОГИКА: МЫ ОТКРЫЛИ ВАЛИДНЫЙ ФАЙЛ .writer ---
-        // Стор сам разложит данные по полочкам и восстановит массив страниц с id
-        doc.setFromNetwork(result);
+      if (result && Array.isArray(result)) {
+        doc.setFromNetwork({ pages: result });
 
-        // Активируем экран редактора
         chooseFile = fileName;
         navState.isVisible = !navState.isVisible;
       } else {
-        // --- ЛОГИКА: МЫ ЗАШЛИ В ДИРЕКТОРИЮ (ПАПКУ ПРОЕКТА) ---
-        // 1. Обновляем реактивное имя текущего проекта в шапке архива
         currentProject = fileName;
-
-        // 2. КРИТИЧЕСКИ ВАЖНО: Принудительно заставляем фронтенд
-        // перечитать список файлов из новой папки current_dir бэкенда!
         await get_files();
       }
     } catch (err) {
       console.error("Ошибка в загрузке контента: ", err);
+      showToast(`Не удалось открыть: ${err}`, true);
     }
   }
 
-  // ИСПРАВЛЕНО: Атомарное сохранение структурированного Word-style XML документа
   async function saveContent() {
     if (!chooseFile) {
       showToast("Невозможно сохранить: файл не выбран", true);
       return;
     }
-
     try {
       const payload = doc.getCompilePayload();
       await invoke<string>("write_to_file", {
-        document: payload,
-        file: chooseFile,
+        filePath: chooseFile,
+        pages: payload.pages,
       });
-
-      // Вызываем наше красивое уведомление вместо старого alert()
       showToast("Сценарий успешно сохранен на диск", false);
     } catch (e) {
       console.error("Критическая ошибка сохранения файла сценария:", e);

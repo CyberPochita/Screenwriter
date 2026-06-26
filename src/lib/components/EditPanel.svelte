@@ -1,12 +1,14 @@
 <script lang="ts">
   import { getContext } from "svelte";
-  import "$lib/../theme.css"
+  import "$lib/../theme.css";
 
   let doc = getContext<any>("doc");
 
   function generatePerfectWordStyleTitlePage() {
     if (!doc || !doc.currentPage) return;
-    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
+    const editorDiv = document.querySelector(
+      '[role="textbox"]',
+    ) as HTMLDivElement;
     if (!editorDiv) return;
 
     editorDiv.focus();
@@ -49,7 +51,9 @@
 
   function insertAndSelect(htmlContent: string, targetSelector: string) {
     if (!doc || !doc.currentPage) return;
-    const editorDiv = document.querySelector('[role="textbox"]') as HTMLDivElement;
+    const editorDiv = document.querySelector(
+      '[role="textbox"]',
+    ) as HTMLDivElement;
     if (!editorDiv) return;
 
     editorDiv.focus();
@@ -58,7 +62,9 @@
     setTimeout(() => {
       const insertedElements = editorDiv.querySelectorAll(targetSelector);
       if (insertedElements.length > 0) {
-        const lastElement = insertedElements[insertedElements.length - 1] as HTMLElement;
+        const lastElement = insertedElements[
+          insertedElements.length - 1
+        ] as HTMLElement;
         selectElementText(lastElement);
         if (lastElement.classList.contains("temp-select-target")) {
           lastElement.classList.remove("temp-select-target");
@@ -69,34 +75,33 @@
   }
 
   function insertSceneHeadingLayout() {
-    const html = `<div><br></div><div class="temp-select-target font-courier text-12pt uppercase tracking-wide">НАТ. ДВОР СТАНДАРТНОГО ДОМА - ДЕНЬ</div><div><br></div>`;
+    const html = `<div class="scen-heading font-mono text-[12pt] font-bold uppercase tracking-wide mt-6 mb-3 temp-select-target">НАТ. ДВОР СТАНДАРТНОГО ДОМА - ДЕНЬ</div>`;
     insertAndSelect(html, ".temp-select-target");
   }
 
   function insertActionDescriptionLayout() {
-    const html = `<div><br></div><div class="temp-select-target font-courier text-12pt  text-justify">МАЙОР мрачно ест пельмени. Пьет пиво. На столе перед ним красная клеенчатая папка.</div><div><br></div>`;
+    const html = `<div class="scen-action font-mono text-[12pt] text-justify my-3 temp-select-target">МАЙОР мрачно ест пельмени. Пьет пиво. На столе перед ним красная клеенчатая папка.</div>`;
     insertAndSelect(html, ".temp-select-target");
   }
 
   function insertCharacterNameLayout() {
-    const leftMargin = "&nbsp;".repeat(35);
-    const html = `<div><br></div><div class="temp-select-target font-courier text-12pt  uppercase">${leftMargin}СЛЕДОВАТЕЛЬ</div>`;
+    const html = `<div class="scen-character font-mono text-[12pt] uppercase pl-[35%] mt-4 mb-1 temp-select-target">СЛЕДОВАТЕЛЬ</div>`;
     insertAndSelect(html, ".temp-select-target");
   }
 
   function insertCharacterDialogueLayout() {
-    const html = `<div class="script-dialogue font-courier text-12pt">Ты лучше бы не каркал...</div><div><br></div>`;
-    insertAndSelect(html, ".script-dialogue");
+    const html = `<div class="scen-dialog font-mono text-[12pt] px-[20%] mb-3 temp-select-target">Ты лучше бы не каркал...</div>`;
+    insertAndSelect(html, ".temp-select-target");
   }
 
   function insertParentheticalLayout() {
-    const html = `<div class="script-parenthetical font-courier text-12pt ">(рассматривает пистолет)</div>`;
-    insertAndSelect(html, ".script-parenthetical");
+    const html = `<div class="scen-parenthetical font-mono text-[12pt] px-[25%] mb-1 temp-select-target">(рассматривает пистолет)</div>`;
+    insertAndSelect(html, ".temp-select-target");
   }
 
   function insertTitleLayout() {
-    const html = `<div>ТИТР:</div><div><br></div><div class="script-title-text font-courier text-12pt ">Квартира Зубека, 12 июля, 12:57</div><div><br></div>`;
-    insertAndSelect(html, ".script-title-text");
+    const html = `<div class="scen-title font-mono text-[12pt] text-center my-6 temp-select-target">Квартира Зубека, 12 июля, 12:57</div>`;
+    insertAndSelect(html, ".temp-select-target");
   }
 
   function clearCurrentPageText() {
